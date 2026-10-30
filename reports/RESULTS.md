@@ -88,9 +88,10 @@ The same control-plane world, deployed with a pooled gate and a canary of the qu
 
 ## Held-out failures
 
-`ci-failures-1` (heldout), first run: 44 cases written blind; kind right 50%, next step right 61%.
+`ci-failures-1` (regression): 44 cases written blind. First run: kind right 50%, next step right 61%.
+Studied since, so now a regression set: kind right 100%, next step right 98% (not a measure of how the agent generalises).
 
-| Expected | Cases | Right |
+| Expected | Cases | Right on the first run |
 |---|---|---|
 | infra | 11 | 10 |
 | dependency | 10 | 1 |
