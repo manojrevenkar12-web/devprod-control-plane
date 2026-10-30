@@ -1,0 +1,34 @@
+# A tiny set written with the code in view: it tests the harness, not the agent.
+- id: disk-full
+  pr: {modules: [billing], files: [services/billing/src/x.py]}
+  failed_jobs:
+    - module: billing
+      step: test
+      log: "OSError: [Errno 28] No space left on device: '/home/runner/_work'"
+  expect: {kind: infra, next_step: rerun_failed_jobs}
+  why: disk
+- id: registry-outage
+  pr: {modules: [billing], files: [services/billing/src/x.py]}
+  failed_jobs:
+    - module: billing
+      step: install
+      log: "ERROR: No matching distribution found for httpx==0.99"
+  install_failures_last_2h: 5
+  expect: {kind: dependency, next_step: wait_and_rerun}
+  why: many pull requests
+- id: known-flake
+  pr: {modules: [billing], files: [services/billing/src/x.py]}
+  failed_jobs:
+    - module: billing
+      log: "FAILED services/billing/tests/test_x.py::test_rounds - Failed: Timeout >10.0s"
+  history: {"billing::test_rounds": {runs: 200, fails: 9, flips: 8}}
+  expect: {kind: flaky, next_step: rerun_failed_jobs}
+  why: flips
+- id: confirmed-regression
+  pr: {modules: [billing], files: [services/billing/src/x.py]}
+  failed_jobs:
+    - module: billing
+      log: "FAILED services/billing/tests/test_x.py::test_totals - AssertionError: assert 3 == 4"
+  confirming_rerun: failed
+  expect: {kind: regression, next_step: tell_author}
+  why: failed twice

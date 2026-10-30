@@ -54,6 +54,12 @@ def run(log: Any = print, simulate_first: bool = True) -> dict[str, Any]:
         simulate(log)
     results = evaluation.evaluate()
     results["gate"] = gate(results)
+    from . import heldout
+
+    sets = sorted(p.name for p in settings.HELDOUT.iterdir() if (p / "cases.yaml").exists()) \
+        if settings.HELDOUT.exists() else []
+    if sets:
+        results["heldout"] = "\n\n".join(heldout.summary(s) for s in sets)
     settings.REPORTS.mkdir(parents=True, exist_ok=True)
     (settings.REPORTS / "results.json").write_text(json.dumps(results, indent=2, default=float))
     from . import report

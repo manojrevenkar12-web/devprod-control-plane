@@ -243,6 +243,28 @@ def dev_test(name: str, root: Path = typer.Option(Path("."))) -> None:
     raise typer.Exit(2)
 
 
+@app.command("export-web")
+def export_web() -> None:
+    """Write the dashboard's data to web/public/data (from the reports and both worlds)."""
+    from . import export
+
+    typer.echo("wrote " + ", ".join(export.run()))
+
+
+@app.command()
+def heldout(name: str, world: str = WORLD) -> None:
+    """Score the triage agent on a held-out set (its first run is recorded once and never rewritten)."""
+    from . import heldout as h
+
+    out = h.run(name, _store(world).modules())
+    typer.echo(f"{name} ({out['status']}): {out['cases']} cases, kind right {out['kind_accuracy']:.0%}, "
+               f"next step right {out['next_step_accuracy']:.0%}" + (" — first run recorded" if out.get("first_run")
+                                                                     else ""))
+    for r in out["results"]:
+        if not r["kind_ok"]:
+            typer.echo(f"  {r['id']}: expected {r['expected']}, got {r['got']} ({r['why']})")
+
+
 @app.command("serve-mcp")
 def serve_mcp(
     world: str = WORLD, http: bool = typer.Option(False, help="Streamable HTTP instead of stdio"), port: int = 8766

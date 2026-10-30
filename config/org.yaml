@@ -3,7 +3,7 @@
 # src/devprod/evaluation.py read this file. Every number is an assumption made to test the platform.
 
 seed: 2026
-start: 2026-09-07          # a Monday
+start: 2026-05-04                # a Monday; no daylight-saving change in the ten weeks
 weeks: 10
 timezone: Europe/Berlin
 

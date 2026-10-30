@@ -1,0 +1,669 @@
+{
+  "set": "ci-failures-1",
+  "status": "heldout",
+  "cases": 44,
+  "kind_accuracy": 0.5,
+  "next_step_accuracy": 0.614,
+  "by_kind": {
+    "infra": {
+      "cases": 11,
+      "right": 10
+    },
+    "dependency": {
+      "cases": 10,
+      "right": 1
+    },
+    "flaky": {
+      "cases": 11,
+      "right": 5
+    },
+    "regression": {
+      "cases": 12,
+      "right": 6
+    }
+  },
+  "confusion": {
+    "infra": {
+      "infra": 10,
+      "dependency": 1
+    },
+    "dependency": {
+      "infra": 9,
+      "dependency": 1
+    },
+    "flaky": {
+      "flaky": 5,
+      "infra": 6
+    },
+    "regression": {
+      "regression": 6,
+      "infra": 6
+    }
+  },
+  "authors_sent_chasing_noise": 0,
+  "results": [
+    {
+      "id": "runner-shutdown-mid-rules-engine-run",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'runner has received a shutdown signal'"
+      ],
+      "why": "the runner was shut down in the middle of the test output; nothing failed even though the change reaches rules-engine"
+    },
+    {
+      "id": "analytics-ui-killed-exit-137",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'Killed'"
+      ],
+      "why": "the job was SIGKILLed (exit 137) with no failing test, in a module the docs-site change cannot reach"
+    },
+    {
+      "id": "coverage-db-disk-full-after-green-tests",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "every test passed; pytest died writing coverage because the runner's disk was full"
+    },
+    {
+      "id": "checkout-cannot-resolve-github",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the checkout could not resolve github.com on this runner; no package install was attempted and no other pull request is affected"
+    },
+    {
+      "id": "git-fetch-early-eof",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the git fetch was cut off mid-transfer twice; a network failure before any code ran"
+    },
+    {
+      "id": "uv-cache-tarball-truncated",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the cache download stalled and the archive was truncated; the packages were never installed"
+    },
+    {
+      "id": "self-hosted-runner-lost-during-jest",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'lost communication with the server'"
+      ],
+      "why": "the runner lost its connection while suites were still running; no test had failed"
+    },
+    {
+      "id": "postgres-service-pull-timeout",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the Postgres service container could not be pulled, so the tests never started"
+    },
+    {
+      "id": "uv-no-space-installing-torch",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'No space left on device'"
+      ],
+      "why": "the install failed because the runner's disk filled up, not because a registry or a pin was wrong; only this pull request is affected"
+    },
+    {
+      "id": "pip-dns-failure-on-one-runner",
+      "expected": "infra",
+      "got": "dependency",
+      "kind_ok": false,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "wait_and_rerun",
+      "next_ok": false,
+      "confidence": 0.7,
+      "evidence": [
+        "install failed: 'Could not find a version that satisfies'",
+        "1 pull requests failed at install in 2 h"
+      ],
+      "why": "the runner could not resolve any host; only this pull request failed at install, so the registry is fine and the machine's network is not"
+    },
+    {
+      "id": "hosted-runner-disconnect-during-xdist",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'lost communication with the server'"
+      ],
+      "why": "the hosted runner disconnected mid-run with every test so far passing, although the change does reach feature-store"
+    },
+    {
+      "id": "pnpm-fetch-503-testing-library",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the npm registry returned 503 for a locked tarball and 14 pull requests failed at install in the same window"
+    },
+    {
+      "id": "uv-files-pythonhosted-503",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "PyPI's file host returned 503 and 11 pull requests failed at install in two hours"
+    },
+    {
+      "id": "upstream-sdist-missing-build-dep",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "a new upstream release shipped only a broken sdist; nine pull requests hit the same build failure and this one does not touch dependencies"
+    },
+    {
+      "id": "npm-tarball-404-unpublished",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "an upstream version in the shared lockfile was pulled from the registry; eight pull requests fail the same way and this one did not change dependencies"
+    },
+    {
+      "id": "mirror-hash-mismatch-numpy",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the package mirror is serving a truncated numpy wheel; 16 pull requests failed at install and this change touches no lock file"
+    },
+    {
+      "id": "sharp-libvips-download-502",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "an upstream binary download returned 502 and the source fallback cannot build; 12 pull requests failed the same way"
+    },
+    {
+      "id": "grpcio-503-after-unrelated-httpx-bump",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the change bumps httpx (which downloaded fine) but the install died on a 503 for an untouched package that 17 pull requests also hit"
+    },
+    {
+      "id": "pnpm-metadata-socket-hang-up",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the npm registry kept resetting connections and 21 pull requests failed at install in the same two hours"
+    },
+    {
+      "id": "pypi-simple-read-timeouts",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "install failed: 'Could not find a version that satisfies'",
+        "13 pull requests failed at install in 2 h"
+      ],
+      "why": "PyPI's index timed out for many jobs at once; 13 pull requests failed at install and the pin is long-standing"
+    },
+    {
+      "id": "broken-hatchling-fails-editable-core",
+      "expected": "dependency",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "wait_and_rerun",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the error names the in-repo core package, but the change does not touch core and 19 pull requests fail building it with the same broken upstream build backend"
+    },
+    {
+      "id": "latency-budget-in-unreachable-decision-api",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`decision-api::test_latency_budget_respected` is in `decision-api`, which this change cannot reach"
+      ],
+      "why": "decision-api does not depend on reporting, so the change cannot have slowed it; a wall-clock assertion missed by 31 ms"
+    },
+    {
+      "id": "dict-mismatch-in-unreachable-bureau",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`connectors-bureau::test_parses_score_band_and_reasons` is in `connectors-bureau`, which this change cannot reach"
+      ],
+      "why": "it looks like a real assertion failure, but connectors-bureau does not depend on billing, so this change cannot have caused it"
+    },
+    {
+      "id": "backfill-window-flips-in-reached-feature-store",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`feature-store::test_backfill_window_boundaries` flipped 17 times in 212 runs"
+      ],
+      "why": "the change does reach feature-store, but this test failed 19 of 212 runs and flipped 17 times on the same commit"
+    },
+    {
+      "id": "confirming-rerun-passed-billing-concurrency",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "propose_quarantine",
+      "got_next": "propose_quarantine",
+      "next_ok": true,
+      "confidence": 0.8,
+      "evidence": [
+        "`billing::test_concurrent_invoice_numbers_are_unique` is in `billing`, which this change reaches",
+        "passed when rerun on the same commit"
+      ],
+      "why": "the change reaches billing and the history was clean, but the confirming rerun of the same commit passed"
+    },
+    {
+      "id": "confirming-rerun-passed-flow-editor-drag",
+      "expected": "flaky",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "propose_quarantine",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "a grid change reaches this drag test, but the confirming rerun passed and the test has flipped 9 times before"
+    },
+    {
+      "id": "jest-timeout-in-unreachable-admin-console",
+      "expected": "flaky",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "admin-console does not depend on flow-editor, so a test timing out there cannot be this change's doing"
+    },
+    {
+      "id": "xdist-port-in-use-unreachable-banking",
+      "expected": "flaky",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "a fixed port collided between xdist workers, in a module that does not depend on notifications"
+    },
+    {
+      "id": "dialog-lookup-flips-in-reached-web-app",
+      "expected": "flaky",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "a ui-kit change reaches web-app, but this test has failed 24 of 318 runs and flipped 21 times, and the change is to Tooltip, not dialogs"
+    },
+    {
+      "id": "quarantined-refresh-race-in-auth",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`auth::test_token_refresh_race` flipped 28 times in 260 runs"
+      ],
+      "why": "the only failure is a test already quarantined for flipping, even though the change reaches auth"
+    },
+    {
+      "id": "truncated-vitest-abort-in-unreachable-sdk-js",
+      "expected": "flaky",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the log starts mid-line, but the PR only changes docs-site content and sdk-js does not depend on docs-site"
+    },
+    {
+      "id": "python-change-ts-failure",
+      "expected": "flaky",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "a Python risk-models change cannot reach a TypeScript module; the name match with \"risk\" is a coincidence"
+    },
+    {
+      "id": "threshold-change-breaks-rules-engine",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`rules-engine::test_score_at_cutoff_is_approved` is in `rules-engine`, which this change reaches",
+        "`rules-engine::test_cutoff_reason_code_is_stable` is in `rules-engine`, which this change reaches"
+      ],
+      "why": "the change to cutoff thresholds reaches rules-engine and two never-failing tests at the cutoff broke"
+    },
+    {
+      "id": "scope-rename-breaks-decision-api-confirmed",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "tell_author",
+      "got_next": "tell_author",
+      "next_ok": true,
+      "confidence": 0.92,
+      "evidence": [
+        "`decision-api::test_service_token_can_create_decision` is in `decision-api`, which this change reaches",
+        "failed again on rerun"
+      ],
+      "why": "the auth change reaches decision-api through connectors-banking, the test never failed before, and the confirming rerun failed again"
+    },
+    {
+      "id": "polling-loop-hits-pytest-timeout",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`connectors-bureau::test_fetch_report_when_ready` is in `connectors-bureau`, which this change reaches"
+      ],
+      "why": "it reads as a timeout, but the hang is inside the polling loop this change rewrote and the test has never failed before"
+    },
+    {
+      "id": "retry-change-hangs-sdk-js-until-job-timeout",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "tell_author",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the job timed out stuck in the tests of the retry code this change edits, and the confirming rerun hung in the same place"
+    },
+    {
+      "id": "kyc-mapping-breaks-next-to-known-flaky",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`connectors-kyc::test_maps_applicant_address` is in `connectors-kyc`, which this change reaches"
+      ],
+      "why": "one failure is a known flipper, but the other never failed and breaks on a schemas field the change renamed"
+    },
+    {
+      "id": "failed-once-never-flipped-feature-store",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`feature-store::test_cost_features_rollup` is in `feature-store`, which this change reaches"
+      ],
+      "why": "billing reaches feature-store; the test failed once before but never flipped, and the value is off by exactly a units factor"
+    },
+    {
+      "id": "own-bad-pin-uv-unsatisfiable",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the install fails on a pin this pull request added to billing, and only this pull request failed at install"
+    },
+    {
+      "id": "own-package-json-without-lockfile-confirmed",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "tell_author",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the pull request added a dependency to web-app's package.json without updating the lockfile; it is the only install failure and the rerun failed the same way"
+    },
+    {
+      "id": "button-variant-change-breaks-snapshots",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the ui-kit Button change reaches both modules and their Button snapshots and lookups broke together"
+    },
+    {
+      "id": "truncated-log-core-rounding-breaks-reporting",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "tell_author",
+      "got_next": "tell_author",
+      "next_ok": true,
+      "confidence": 0.92,
+      "evidence": [
+        "`reporting::test_monthly_totals_jpy` is in `reporting`, which this change reaches",
+        "`reporting::test_totals_in_multiple_currencies` is in `reporting`, which this change reaches",
+        "failed again on rerun"
+      ],
+      "why": "the log is cut at the start, but both tracebacks end in the core money function this change edits, and the confirming rerun failed"
+    },
+    {
+      "id": "agent-runtime-rename-breaks-feature-store-import",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "feature-store reaches agent-runtime four hops away (data-sync, connectors-kyc, audit-log) and the import of a name this change removed fails"
+    },
+    {
+      "id": "sdk-response-shape-breaks-web-app-confirmed",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "tell_author",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the sdk-js change to the flows list response reaches web-app, both failures read the list's items, and the confirming rerun failed again"
+    }
+  ]
+}
