@@ -26,8 +26,15 @@ dependencies = [
 devprod = "devprod.cli:app"
 
 [dependency-groups]
-dev = ["pytest>=8.4", "pytest-asyncio>=1.1", "hypothesis>=6.135", "ruff>=0.13",
-       "moto[cloudformation,lambda,codedeploy,cloudwatch,sts,s3,ssm]>=5.1", "cfn-lint>=1.40"]
+dev = [
+    "pytest>=8.4",
+    "pytest-asyncio>=1.1",
+    "hypothesis>=6.135",
+    "ruff>=0.13",
+    "moto[cloudformation,lambda,codedeploy,cloudwatch,sts,s3,ssm]>=5.1",
+    "cfn-lint>=1.40",
+    "pytest-cov>=7.1.0",
+]
 
 [build-system]
 requires = ["hatchling"]

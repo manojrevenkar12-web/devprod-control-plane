@@ -7,6 +7,8 @@ import os
 from datetime import UTC, datetime
 from typing import Any
 
+import boto3
+
 from .aws import Accounts, CloudWatchMetrics, StackExecutor
 from .worker import RolloutTable, tick
 
@@ -22,8 +24,12 @@ def handler(event: dict[str, Any], context: Any) -> dict[str, Any]:
         os.environ.get("DEPLOY_EXTERNAL_ID"),
     )
     ids = {i["account_id"]: i["account_id"] for item in table.due(now) for i in json.loads(item["accounts"])}
-    ex = StackExecutor(
-        accounts, os.environ.get("STACK_NAME", "decisions-runtime"), os.environ.get("TEMPLATE_BODY", ""), EPOCH, ids
-    )
+    s3 = boto3.client("s3")
+
+    def template(release: int) -> str:  # each release's packaged template, written by the release train
+        obj = s3.get_object(Bucket=os.environ["RELEASES_BUCKET"], Key=f"releases/{release}/template.yaml")
+        return obj["Body"].read().decode()
+
+    ex = StackExecutor(accounts, os.environ.get("STACK_NAME", "decisions-runtime"), template, EPOCH, ids)
     metrics = CloudWatchMetrics(accounts, EPOCH, ids)
     return {"advanced": tick(table, now, ex, metrics, EPOCH)}

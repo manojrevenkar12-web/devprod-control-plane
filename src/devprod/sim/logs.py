@@ -29,7 +29,7 @@ def header(m: Module, shard: int, runner: str) -> str:
     )
 
 
-def _pytest_fail(t: Test, kind: str, r: np.random.Generator) -> str:
+def _pytest_fail(t: Test, kind: str, r: np.random.Generator) -> tuple[str, str]:
     name = t.test_id.split("::")[1]
     if kind == "timeout":
         detail = f"Failed: Timeout >{int(r.integers(5, 30))}.0s"

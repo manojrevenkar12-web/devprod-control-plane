@@ -52,6 +52,7 @@ class Store:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         if fresh and self.path.exists():
             self.path.unlink()
+        self._conns: list[sqlite3.Connection] = []
         self._local = threading.local()
         self.db.executescript(SCHEMA)
 
@@ -62,7 +63,18 @@ class Store:
             c = sqlite3.connect(self.path, check_same_thread=False)
             c.row_factory = sqlite3.Row
             self._local.conn = c
+            self._conns.append(c)
         return c
+
+    def close(self) -> None:
+        for c in self._conns:
+            c.close()
+        self._conns.clear()
+        self._local = threading.local()
+
+    def __del__(self) -> None:
+        for c in getattr(self, "_conns", []):
+            c.close()
 
     def rows(self, sql: str, args: tuple[Any, ...] = ()) -> list[dict[str, Any]]:
         return [dict(r) for r in self.db.execute(sql, args).fetchall()]

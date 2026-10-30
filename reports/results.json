@@ -48,14 +48,14 @@
           "deploys_per_working_day": 1.64,
           "change_failure_rate": 0.204,
           "lead_time_for_changes_hours": {
-            "p50": 13.4,
-            "p90": 74.2
+            "p50": 13.3,
+            "p90": 74.1
           },
           "time_to_restore_minutes": {
             "p50": 108.7,
             "max": 142.5
           },
-          "rollbacks": 4676,
+          "rollbacks": 4656,
           "customer_accounts_touched_by_failed_rollouts": 260,
           "failed_rollout_customer_accounts_median": 225.0
         }
@@ -103,7 +103,7 @@
           "customer_accounts_hit": 260,
           "exposure_decision_minutes": 5000393.0,
           "bad_decisions": 467893.0,
-          "release_to_95pct_minutes_median": 615.8
+          "release_to_95pct_minutes_median": 604.7
         }
       },
       "summary": {
@@ -159,18 +159,18 @@
         "delivery": {
           "releases": 244,
           "rollouts_reaching_customers": 90,
-          "completed_rollouts": 87,
-          "deploys_per_working_day": 1.74,
-          "change_failure_rate": 0.033,
+          "completed_rollouts": 88,
+          "deploys_per_working_day": 1.76,
+          "change_failure_rate": 0.022,
           "lead_time_for_changes_hours": {
-            "p50": 16.4,
-            "p90": 76.8
+            "p50": 16.2,
+            "p90": 37.7
           },
           "time_to_restore_minutes": {
-            "p50": 38.7,
-            "max": 83.9
+            "p50": 38.6,
+            "max": 38.7
           },
-          "rollbacks": 64,
+          "rollbacks": 46,
           "customer_accounts_touched_by_failed_rollouts": 14,
           "failed_rollout_customer_accounts_median": 14.0
         }
@@ -229,17 +229,17 @@
           "policy": "control-plane",
           "deploy_settings": "control-plane",
           "releases": 244,
-          "rollouts": 105,
-          "completed": 87,
+          "rollouts": 104,
+          "completed": 88,
           "bad_releases": 30,
           "bad_rollouts": 16,
           "stopped_by_gate": 16,
-          "false_rollbacks": 2,
+          "false_rollbacks": 0,
           "rolled_back_by_person": 0,
           "customer_accounts_hit": 8,
           "exposure_decision_minutes": 2412.0,
           "bad_decisions": 350.0,
-          "release_to_95pct_minutes_median": 789.9
+          "release_to_95pct_minutes_median": 784.4
         }
       },
       "summary": {
@@ -257,17 +257,17 @@
       "policy": "control-plane",
       "deploy_settings": "control-plane-pooled",
       "releases": 244,
-      "rollouts": 105,
+      "rollouts": 104,
       "completed": 90,
       "bad_releases": 30,
       "bad_rollouts": 16,
       "stopped_by_gate": 14,
-      "false_rollbacks": 1,
+      "false_rollbacks": 0,
       "rolled_back_by_person": 2,
       "customer_accounts_hit": 141,
       "exposure_decision_minutes": 240375.0,
       "bad_decisions": 34808.0,
-      "release_to_95pct_minutes_median": 610.3
+      "release_to_95pct_minutes_median": 607.0
     }
   },
   "gate": [
@@ -344,23 +344,23 @@
     {
       "name": "few false rollbacks",
       "passed": true,
-      "value": 2,
+      "value": 0,
       "op": "<=",
-      "bound": 3.15
+      "bound": 3.12
     },
     {
       "name": "change failure rate (DORA)",
       "passed": true,
-      "value": 0.033,
+      "value": 0.022,
       "op": "<=",
       "bound": 0.1
     },
     {
       "name": "lead time for changes stays within 1.5x (p50)",
       "passed": true,
-      "value": 16.4,
+      "value": 16.2,
       "op": "<=",
-      "bound": 20.1
+      "bound": 19.950000000000003
     },
     {
       "name": "agent spend over the ten weeks (USD)",

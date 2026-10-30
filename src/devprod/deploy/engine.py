@@ -5,9 +5,11 @@ runs in the simulation, in a worker, or as the body of a Step Functions task, an
 plain dict that can be stored between steps. Waves go from internal accounts to a small canary of
 low-traffic customers, to a quarter, to everyone. Each customer may restrict deploys to a local time
 window; its accounts in a wave are deployed when their window opens. After each wave bakes, a gate
-compares the wave's error rate with the same accounts before the deploy; if errors more than
-`max_ratio` times and a one-sided binomial test agrees at `alpha`, every account already on the
-release is rolled back and the rollout stops."""
+compares the wave's error rate with the same accounts before the deploy, per customer tier; if
+errors more than `max_ratio` times and a one-sided binomial test agrees, every account already on the
+release is rolled back and the rollout stops. `alpha` is the chance of rolling back a good release
+over the whole rollout: it is split across the waves, tiers and looks (a quiet canary bakes longer
+and is looked at again), so more waves do not mean more false alarms."""
 
 from __future__ import annotations
 
@@ -47,11 +49,14 @@ def in_window(a: Account, t: float, epoch: datetime) -> bool:
 
 
 def next_window(a: Account, t: float, epoch: datetime) -> float:
+    """The first quarter hour at or after t inside the account's window."""
     step = 15.0
-    x = t
-    while not in_window(a, x, epoch):
+    x = math.ceil(t / step) * step
+    for _ in range(4 * 24 * 2):
+        if in_window(a, x, epoch):
+            return x
         x += step
-    return x
+    raise ValueError(f"{a.account_id}: window {a.window!r} never opens")
 
 
 def plan(accounts: list[Account], waves: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -102,6 +107,15 @@ def gate(
     }
 
 
+def tests_per_rollout(waves: list[dict[str, Any]], cfg: dict[str, Any]) -> int:
+    """How many looks a rollout's gates may take: gated waves x looks per wave (the first, then one per
+    extension). The rollout's alpha is split across them (Bonferroni), so a good release is rolled
+    back with probability at most `alpha` however many waves, tiers and extensions it goes through."""
+    gated = sum(1 for w in waves if w.get("bake_minutes"))
+    looks = 1 + math.ceil(cfg.get("max_bake_minutes", 0) / cfg.get("extend_minutes", 15))
+    return max(1, gated * looks)
+
+
 def gate_wave(
     ids: list[str],
     accounts: dict[str, Account],
@@ -110,6 +124,7 @@ def gate_wave(
     t0: float,
     t1: float,
     cfg: dict[str, Any],
+    looks: int = 1,
 ) -> dict[str, Any]:
     """One gate over the wave, or (per_tier) one per tier at alpha / tiers, so a fault that only one
     tier's traffic exercises is not diluted by the others. Fails if any group fails; passes once every
@@ -117,7 +132,7 @@ def gate_wave(
     groups: dict[str, list[str]] = {}
     for a in ids:
         groups.setdefault(accounts[a].tier if cfg.get("per_tier") else "all", []).append(a)
-    alpha = cfg["alpha"] / len(groups)
+    alpha = cfg["alpha"] / len(groups) / looks
     out = {}
     for name, members in sorted(groups.items()):
         out[name] = gate(metrics.counts(members, t_before, t0), metrics.counts(members, t0, t1), cfg, alpha)
@@ -164,12 +179,21 @@ class Rollout:
                 self.deployed[acc] = ex.deploy(acc, self.release, now)
         w = self.waves[self.wave]
         ids = [a for a in w["account_ids"] if a in self.deployed]
-        done_at = max((self.deployed[a] for a in ids), default=now)
-        bake_end = done_at + w.get("bake_minutes", 0)
+        done_at = max((self.deployed[a] for a in ids), default=self.wave_started)
+        bake_end = done_at + (w.get("bake_minutes", 0) if ids else 0)  # an empty wave has nothing to bake
         if now < bake_end:
             return bake_end
         if self.gate_cfg and w.get("bake_minutes", 0) and ids:
-            g = gate_wave(ids, accounts, metrics, self.wave_started - 60, done_at, now, self.gate_cfg)
+            g = gate_wave(
+                ids,
+                accounts,
+                metrics,
+                self.wave_started - 60,
+                done_at,
+                now,
+                self.gate_cfg,
+                tests_per_rollout(self.waves, self.gate_cfg),
+            )
             if (
                 (g["passed"] is None or g["undecided"])
                 and g["passed"] is not False

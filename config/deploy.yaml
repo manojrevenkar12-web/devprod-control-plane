@@ -10,7 +10,7 @@ control-plane:
   gate:                              # error rate on the wave's accounts against the same accounts before
     min_requests: 400
     max_ratio: 2.0                   # errors may not more than double
-    alpha: 0.01                      # one-sided binomial test
+    alpha: 0.02                      # P(rolling back a good release) per rollout, split over waves, tiers, looks
     per_tier: true                   # one test per tier at alpha / tiers
     max_bake_minutes: 120            # a quiet canary bakes longer until it has min_requests
     extend_minutes: 15
