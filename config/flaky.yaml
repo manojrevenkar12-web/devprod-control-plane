@@ -1,0 +1,8 @@
+# Flaky-test detection and quarantine.
+prior: {alpha: 0.5, beta: 60}        # Beta prior on a test's flip rate (fail, then pass on the same commit)
+quarantine_when:
+  min_flips: 2                       # never on a single observation
+  posterior_p_rate_above: {rate: 0.01, probability: 0.9}
+graduate_after_clean_runs: 60        # consecutive passes while quarantined, then it gates again
+owner_sla_days: 10                   # the owning team fixes or deletes the test within this
+never_quarantine_when_touched: true  # a test whose module the PR changes is never auto-quarantined on that PR

@@ -1,0 +1,15 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+node_modules/
+web/dist/
+web/test-results/
+web/playwright-report/
+.env
+*.sqlite

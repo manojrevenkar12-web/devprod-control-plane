@@ -1,0 +1,26 @@
+# How the control plane runs CI. The baseline is today's process, for comparison.
+control-plane:
+  selection: affected          # affected modules and everything that depends on them
+  shard_target_minutes: 6      # duration-balanced shards from test history
+  max_shards: 8
+  cache: keyed                 # dependency cache keyed on the lockfile hash per module
+  cache_hit: 0.88
+  quarantine: true             # quarantined tests run but do not gate the merge
+  triage: agent
+  auto_rerun: {flaky: 1, infra: 1}   # automatic reruns of the failed job only
+  runners: autoscale
+baseline:
+  selection: touched           # per-module workflows with path filters: only the modules the PR touches
+  shard_target_minutes: null
+  max_shards: 1
+  cache: shared
+  cache_hit: 0.35
+  quarantine: false
+  triage: person
+  auto_rerun: {}
+  runners: fixed
+
+fleet:                         # self-hosted runners on EC2 (infra/terraform/runners)
+  fixed_runners: 24
+  autoscale: {min: 6, max: 64, target_queue_minutes: 1.0, scale_up_minutes: 2.5, idle_shutdown_minutes: 10}
+  vcpu_per_runner: 4

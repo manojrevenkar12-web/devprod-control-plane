@@ -1,0 +1,39 @@
+# Progressive delivery of a release to every customer's AWS account.
+control-plane:
+  waves:                             # share of customer accounts, in order; lowest risk first
+    - {name: dev, accounts: internal-dev, bake_minutes: 10}
+    - {name: staging, accounts: internal-staging, bake_minutes: 20}
+    - {name: canary, share: 0.05, stratify: true, bake_minutes: 30}   # every tier, quietest accounts first
+    - {name: early, share: 0.25, stratify: true, bake_minutes: 30}
+    - {name: rest, share: 1.0, bake_minutes: 0}
+  respect_windows: true
+  gate:                              # error rate on the wave's accounts against the same accounts before
+    min_requests: 400
+    max_ratio: 2.0                   # errors may not more than double
+    alpha: 0.01                      # one-sided binomial test
+    per_tier: true                   # one test per tier at alpha / tiers
+    max_bake_minutes: 120            # a quiet canary bakes longer until it has min_requests
+    extend_minutes: 15
+  rollback: automatic
+  lambda_traffic_shift: Canary10Percent5Minutes   # CodeDeploy, inside each account
+baseline:
+  waves:
+    - {name: staging, accounts: internal-staging, bake_minutes: 20}
+    - {name: all, share: 1.0, bake_minutes: 0}
+  respect_windows: true
+  gate: null
+  rollback: manual
+  lambda_traffic_shift: AllAtOnce
+# Ablation: the usual canary (quietest starter accounts, one pooled gate). Run on the control-plane
+# world to show what stratifying the waves and gating per tier buys.
+control-plane-pooled:
+  waves:
+    - {name: dev, accounts: internal-dev, bake_minutes: 10}
+    - {name: staging, accounts: internal-staging, bake_minutes: 20}
+    - {name: canary, share: 0.05, tiers: [starter], bake_minutes: 30}
+    - {name: early, share: 0.25, bake_minutes: 30}
+    - {name: rest, share: 1.0, bake_minutes: 0}
+  respect_windows: true
+  gate: {min_requests: 400, max_ratio: 2.0, alpha: 0.01, per_tier: false, max_bake_minutes: 120, extend_minutes: 15}
+  rollback: automatic
+  lambda_traffic_shift: Canary10Percent5Minutes

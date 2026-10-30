@@ -1,0 +1,20 @@
+# The release gate: what the control plane must show, against the truth and against the baseline world,
+# before a change to it ships. `left` and `right` are paths into reports/results.json; `right` may be a
+# number. The check passes when  left <op> right * factor.
+cp: worlds.control-plane
+base: worlds.baseline
+checks:
+  - {name: fewer regressions reach main, left: "{cp}.truth.ci.regressions_escaped", op: "<", right: "{base}.truth.ci.regressions_escaped"}
+  - {name: quarantine never hides a regression, left: "{cp}.truth.ci.regressions_hidden_by_quarantine", op: "<=", right: 0}
+  - {name: quarantined tests are really flaky, left: "{cp}.truth.ci.flake_detector.precision", op: ">=", right: 0.9}
+  - {name: triage agent is right, left: "{cp}.truth.ci.agent.accuracy", op: ">=", right: 0.9}
+  - {name: authors are not sent chasing noise, left: "{cp}.truth.ci.agent.regression_precision", op: ">=", right: 0.9}
+  - {name: half the human time on CI failures, left: "{cp}.truth.ci.human_minutes", op: "<=", right: "{base}.truth.ci.human_minutes", factor: 0.5}
+  - {name: faster green signal (p95), left: "{cp}.observed.ci.push_to_green_minutes.p95", op: "<=", right: "{base}.observed.ci.push_to_green_minutes.p95"}
+  - {name: cheaper runner fleet, left: "{cp}.observed.ci.runner_minutes", op: "<=", right: "{base}.observed.ci.runner_minutes"}
+  - {name: runner queue stays short (p95 minutes), left: "{cp}.observed.ci.queue_minutes.p95", op: "<=", right: 5}
+  - {name: bad releases hurt 20x fewer decisions, left: "{cp}.truth.deploys.bad_decisions", op: "<=", right: "{base}.truth.deploys.bad_decisions", factor: 0.05}
+  - {name: few false rollbacks, left: "{cp}.truth.deploys.false_rollbacks", op: "<=", right: "{cp}.truth.deploys.rollouts", factor: 0.03}
+  - {name: change failure rate (DORA), left: "{cp}.observed.delivery.change_failure_rate", op: "<=", right: 0.1}
+  - {name: lead time for changes stays within 1.5x (p50), left: "{cp}.observed.delivery.lead_time_for_changes_hours.p50", op: "<=", right: "{base}.observed.delivery.lead_time_for_changes_hours.p50", factor: 1.5}
+  - {name: agent spend over the ten weeks (USD), left: "{cp}.summary.agent_usd", op: "<=", right: 25}

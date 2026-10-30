@@ -1,0 +1,70 @@
+# The simulated engineering organisation: a monorepo, its engineers, how its tests really behave,
+# which changes really break things, and its customers' AWS accounts. TRUTH: only src/devprod/sim and
+# src/devprod/evaluation.py read this file. Every number is an assumption made to test the platform.
+
+seed: 2026
+start: 2026-09-07          # a Monday
+weeks: 10
+timezone: Europe/Berlin
+
+repo:
+  python_modules: 18
+  ts_modules: 7
+  shared_python: [core, schemas, decision-runtime]    # most Python modules depend on these
+  shared_ts: [ui-kit]
+  tests_per_module: [60, 420]
+  test_seconds: {median: 0.9, sd: 1.1}                # lognormal per test
+  setup_minutes: {cache_hit: 1.2, cache_miss: 6.5, ts_cache_miss: 4.0}
+
+tests:
+  flaky_share: 0.004          # tests that sometimes fail on unchanged code
+  flake_rate: [0.003, 0.05]   # how often a flaky test fails, per run
+  flaky_kinds: {timeout: 0.4, ordering: 0.35, network: 0.25}
+
+people:
+  engineers: 42
+  teams: {decisions: 8, connectors: 7, platform: 5, risk: 7, data: 5, frontend: 10}
+  prs_per_engineer_day: 0.55
+  review_hours: {median: 2.5, sd: 0.8}               # lognormal, working hours
+  investigate_minutes:                               # how long a person needs to understand a red build
+    flaky: 18
+    infra: 12
+    dependency: 25
+    regression: 45
+  investigate_with_correct_hint: 0.35                # share of that time when a correct diagnosis is posted
+  investigate_with_wrong_hint: 1.4                   # a wrong diagnosis costs more than none
+  fix_minutes: {median: 50, sd: 0.7}
+  workday: [9, 18]
+
+changes:
+  modules_per_pr: [1, 3]
+  regression_share: 0.07       # PRs that break something
+  covered_share: 0.78          # ... of which the tests catch it; the rest reach a release
+  regression_tests: [1, 6]     # failing tests when caught
+  slow_regression_share: 0.2   # caught regressions that look like timeouts (a performance regression)
+  breaks_dependents_share: 0.3 # the failing tests sit in a module that depends on the changed one
+
+ci:
+  infra_failure_per_job: 0.008
+  infra_kinds: {oom: 0.35, disk: 0.25, shutdown: 0.25, network: 0.15}
+  dependency_outages: 3        # windows when a package registry or an upstream release breaks installs
+  outage_hours: [1, 6]
+  runner_minute_eur: {self_hosted: 0.0042, hosted: 0.008}
+
+releases:
+  train_every_minutes: 120     # main is released to customers on a train during working hours
+customers:
+  accounts: 260
+  tiers: {enterprise: 0.15, growth: 0.45, starter: 0.40}
+  traffic: {enterprise: 40, growth: 8, starter: 1}     # decisions per minute
+  restricted_windows_share: 0.3                         # only deploy 18:00-07:00 local
+  timezones: [Europe/Berlin, Europe/London, America/New_York, America/Sao_Paulo]
+  baseline_error_rate: 0.002
+  bad_release_error_rate: [0.02, 0.15]                 # what an escaped regression does to a customer
+  internal_synthetic_traffic: 30                       # replayed decisions per minute in dev and staging;
+                                                       # the replay covers paths every customer uses, not tier-only ones
+  regression_scope:                                    # which customers an escaped regression hurts
+    all: 0.6
+    enterprise: 0.25                                   # e.g. a connector only enterprise customers use
+    growth: 0.15
+  manual_detection_minutes: [40, 140]                  # how long until a person notices without gates
