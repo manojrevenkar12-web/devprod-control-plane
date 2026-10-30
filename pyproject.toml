@@ -54,3 +54,4 @@ ignore = ["RUF001", "RUF002", "RUF003", "RUF046", "SIM108"]
 [tool.ruff.lint.per-file-ignores]
 "src/devprod/sim/logs.py" = ["E501"]   # log lines are what CI prints
 "src/devprod/report.py" = ["E501"]
+"src/devprod/paved/scaffold.py" = ["E501"]   # file templates

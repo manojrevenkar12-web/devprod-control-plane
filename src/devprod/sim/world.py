@@ -201,7 +201,9 @@ class World:
             self.store.insert(
                 "modules", {"name": m.name, "language": m.language, "deps": m.deps, "owner": m.owner, "path": m.path}
             )
-            self.store.insert_many("tests", [{"test_id": t.test_id, "module": m.name} for t in m.tests])
+            self.store.insert_many(
+                "tests", [{"test_id": t.test_id, "module": m.name, "seconds": t.seconds} for t in m.tests]
+            )
         self.graph = Graph(self.store.modules())
         self.fleet = Fleet(
             "fixed" if self.policy.cfg["runners"] == "fixed" else "autoscale", settings.load("ci")["fleet"]
@@ -221,7 +223,7 @@ class World:
         self.attempt_of: dict[int, int] = {}
         self.human: list[dict[str, Any]] = []
         self.agent_usd = 0.0
-        self.durations = {tid: t.seconds for tid, t in self.tests.items()}  # learnt from history in production
+        self.durations = {tid: t.seconds for tid, t in self.tests.items()}  # what JUnit reports record
         self.shards: dict[str, list[list[str]]] = {}
         self.flaky_in: dict[tuple[str, int], list[str]] = {}
         for m in self.mods.values():

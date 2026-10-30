@@ -12,7 +12,7 @@ from typing import Any
 
 SCHEMA = """
 create table if not exists modules (name text primary key, language text, deps text, owner text, path text);
-create table if not exists tests (test_id text primary key, module text);
+create table if not exists tests (test_id text primary key, module text, seconds real);
 create table if not exists prs (pr integer primary key, author text, team text, opened_ts real, merged_ts real,
   modules text, files text, title text, head_sha text);
 create table if not exists runs (run_id integer primary key, pr integer, sha text, attempt integer, trigger text,

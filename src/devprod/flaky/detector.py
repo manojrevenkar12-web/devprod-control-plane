@@ -116,3 +116,22 @@ class FlakeRegister:
 
     def summary(self) -> list[dict[str, Any]]:
         return [self.history(t) for t in sorted(self.flips, key=lambda t: -self.flips[t])]
+
+
+def replay(store: Store) -> FlakeRegister:
+    """Rebuilds the register from the CI record (jobs in finishing order and their failed tests), so a
+    fresh process (the MCP server, the API) sees the same history the CI saw."""
+    owners = {m: v["owner"] for m, v in store.modules().items()}
+    reg = FlakeRegister(store, owners)
+    failed: dict[int, list[str]] = defaultdict(list)
+    for r in store.rows("select job_id, test_id from test_results"):
+        failed[r["job_id"]].append(r["test_id"])
+    jobs = store.rows(
+        "select j.job_id, j.module, j.shard, j.conclusion, r.sha from jobs j join runs r using(run_id) "
+        "order by j.finished_ts, j.job_id"
+    )
+    for j in jobs:
+        if j["conclusion"] != "success" and j["job_id"] not in failed:
+            continue  # the runner or an install failed: the tests did not run
+        reg.observe_job(j["sha"], f"{j['module']}#{j['shard']}", [], failed.get(j["job_id"], []))
+    return reg
