@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "devprod": {
+      "command": "uv",
+      "args": ["run", "devprod", "serve-mcp"]
+    }
+  }
+}

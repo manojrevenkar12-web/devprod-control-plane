@@ -1,0 +1,6 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "devprod": { "type": "local", "command": ["uv", "run", "devprod", "serve-mcp"], "enabled": true }
+  }
+}
