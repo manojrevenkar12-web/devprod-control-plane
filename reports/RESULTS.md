@@ -97,3 +97,12 @@ Studied since, so now a regression set: kind right 100%, next step right 98% (no
 | dependency | 10 | 1 |
 | flaky | 11 | 5 |
 | regression | 12 | 6 |
+
+`ci-failures-2` (heldout): 40 cases written blind. First run: kind right 92%, next step right 92%.
+
+| Expected | Cases | Right on the first run |
+|---|---|---|
+| infra | 10 | 10 |
+| dependency | 10 | 10 |
+| flaky | 10 | 9 |
+| regression | 10 | 8 |

@@ -59,7 +59,16 @@ install failures that a change's own manifest had caused.
 That set is now a regression set (`STATUS: regression`). The agent was generalised and passes it.
 A second set was written blind afterwards to measure the generalised agent:
 
-HELDOUT2
+| Set | Written | First run, kind right | Status |
+|---|---|---|---|
+| `ci-failures-1` | blind, before the agent was generalised | **50%** (22 of 44) | regression set: studied, now passes 100% |
+| `ci-failures-2` | blind, after | **92%** (37 of 40) | held out, not studied |
+
+On `ci-failures-2` the agent was right on every infra and dependency case. It never told an author
+that a flake was their fault. Its three misses were failures it could not read, so it fell back to
+"rerun": one unittest-style traceback, one Vitest log, and one component test in a module the change
+cannot reach. Those logs have not been studied: doing so would turn the set into a regression set
+and need a third blind set.
 
 ## How it works
 
@@ -114,7 +123,7 @@ engineers ◀── MCP server (Claude Code, OpenCode) ──  260 customer AWS 
 ```bash
 uv sync
 uv run devprod run              # both worlds, evaluation, reports/, release gate (~15 s)
-uv run pytest -q                # 120+ tests, incl. moto for AWS, the MCP server and the pipeline
+uv run pytest -q                # 122 tests, incl. moto for AWS, the MCP server and the pipeline
 uv run devprod triage --run 3   # what the agent says about a failed run
 uv run devprod new pricing-sim --dep core --root /tmp/mono && uv run devprod dev test pricing-sim --root /tmp/mono
 uv run devprod export-web && (cd web && npm ci && npm run dev)   # http://127.0.0.1:5207

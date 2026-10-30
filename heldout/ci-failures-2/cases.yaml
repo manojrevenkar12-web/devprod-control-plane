@@ -1,0 +1,1673 @@
+# Held-out set ci-failures-2. Written from heldout/WRITING_FAILURES.md only.
+# 40 cases: 10 infra, 10 dependency, 10 flaky, 10 regression.
+
+# ---------------------------------------------------------------- infra
+
+- id: xdist-workers-killed-in-auth
+  pr:
+    modules: [core]
+    files: [libs/core/src/core/text/normalize.py, libs/core/tests/test_normalize.py]
+  failed_jobs:
+    - module: auth
+      step: test
+      log: |
+        2026-10-29T09:14:02.1183320Z ============================= test session starts ==============================
+        2026-10-29T09:14:02.1184411Z platform linux -- Python 3.12.7, pytest-8.3.3, pluggy-1.5.0
+        2026-10-29T09:14:02.1185002Z rootdir: /home/runner/work/monorepo/monorepo/services/auth
+        2026-10-29T09:14:02.1185520Z configfile: pyproject.toml
+        2026-10-29T09:14:02.1186034Z plugins: xdist-3.6.1, cov-5.0.0, timeout-2.3.1, asyncio-0.24.0
+        2026-10-29T09:14:02.1186571Z asyncio: mode=Mode.STRICT, default_loop_scope=function
+        2026-10-29T09:14:04.9921187Z created: 4/4 workers
+        2026-10-29T09:14:06.3310442Z 4 workers [688 items]
+        2026-10-29T09:14:19.0042113Z ........................................................................ [ 10%]
+        2026-10-29T09:14:31.7720458Z ........................................................................ [ 20%]
+        2026-10-29T09:14:44.1093874Z ..................s..................................................... [ 31%]
+        2026-10-29T09:14:58.6612203Z ..........................................
+        2026-10-29T09:15:21.0047731Z [gw3] node down: Not properly terminated
+        2026-10-29T09:15:21.0049012Z F
+        2026-10-29T09:15:21.0049520Z replacing crashed worker gw3
+        2026-10-29T09:15:24.8820116Z [gw0] node down: Not properly terminated
+        2026-10-29T09:15:24.8821007Z F
+        2026-10-29T09:15:24.8821460Z replacing crashed worker gw0
+        2026-10-29T09:15:29.4410387Z ##[error]Process completed with exit code 137.
+  history: {}
+  quarantined: []
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: two xdist workers died and pytest itself was SIGKILLed (exit 137) with no assertion anywhere; the machine ran out of memory
+
+- id: disk-full-during-pip-install
+  pr:
+    modules: [reporting]
+    files: [services/reporting/src/reporting/exports/csv_writer.py]
+  failed_jobs:
+    - module: reporting
+      step: install
+      log: |
+        Run python -m pip install -e "services/reporting[test]" -c constraints/py312.txt
+        Obtaining file:///home/runner/work/monorepo/monorepo/services/reporting
+          Installing build dependencies: started
+          Installing build dependencies: finished with status 'done'
+          Checking if build backend supports build_editable: started
+          Checking if build backend supports build_editable: finished with status 'done'
+          Getting requirements to build editable: started
+          Getting requirements to build editable: finished with status 'done'
+          Preparing editable metadata (pyproject.toml): started
+          Preparing editable metadata (pyproject.toml): finished with status 'done'
+        Collecting pyarrow==17.0.0 (from reporting==0.14.2)
+          Downloading pyarrow-17.0.0-cp312-cp312-manylinux_2_28_x86_64.whl.metadata (3.3 kB)
+        Collecting polars==1.9.0 (from reporting==0.14.2)
+          Downloading polars-1.9.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (14 kB)
+        Collecting pandas==2.2.3 (from reporting==0.14.2)
+          Using cached pandas-2.2.3-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl.metadata (89 kB)
+        Downloading pyarrow-17.0.0-cp312-cp312-manylinux_2_28_x86_64.whl (39.9 MB)
+           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 39.9/39.9 MB 61.2 MB/s eta 0:00:00
+        Downloading polars-1.9.0-cp38-abi3-manylinux_2_17_x86_64.manylinux2014_x86_64.whl (32.4 MB)
+           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 32.4/32.4 MB 74.0 MB/s eta 0:00:00
+        Building wheels for collected packages: reporting
+          Building editable for reporting (pyproject.toml): started
+          Building editable for reporting (pyproject.toml): finished with status 'done'
+        Successfully built reporting
+        Installing collected packages: pytz, tzdata, six, numpy, python-dateutil, pyarrow, polars, pandas, core, reporting
+        ERROR: Could not install packages due to an OSError: [Errno 28] No space left on device: '/opt/hostedtoolcache/Python/3.12.7/x64/lib/python3.12/site-packages/pyarrow/libarrow.so.1700'
+
+        ##[warning]You are running out of disk space. The runner will stop working when the machine runs out of disk space. Free space left: 12 MB
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 1
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: pip failed with ENOSPC while writing an already-downloaded wheel and the runner warned about disk; nothing resolved wrong and no manifest changed
+
+- id: checkout-cannot-resolve-github
+  pr:
+    modules: [ui-kit]
+    files: [frontend/ui-kit/src/components/Tooltip/Tooltip.tsx, frontend/ui-kit/src/components/Tooltip/Tooltip.test.tsx]
+  failed_jobs:
+    - module: docs-site
+      step: install
+      log: |
+        Run actions/checkout@v4
+          with:
+            repository: corvid-labs/monorepo
+            token: ***
+            ssh-strict: true
+            persist-credentials: true
+            clean: true
+            fetch-depth: 1
+            lfs: false
+        Syncing repository: corvid-labs/monorepo
+        Getting Git version info
+          Working directory is '/home/runner/work/monorepo/monorepo'
+          /usr/bin/git version
+          git version 2.47.0
+        Temporarily overriding HOME='/home/runner/work/_temp/8b0a7d55-41c2-4c1e-9b0e-2b8f3c6e1d90' before making global git config changes
+        Adding repository directory to the temporary git global config as a safe directory
+        Deleting the contents of '/home/runner/work/monorepo/monorepo'
+        Initializing the repository
+        Fetching the repository
+          /usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8d1e0b7c4a9f2e63b5c71d0a4e8f9b2c6d3a1e57:refs/remotes/pull/5204/merge
+          Error: fatal: unable to access 'https://github.com/corvid-labs/monorepo/': Could not resolve host: github.com
+          The process '/usr/bin/git' failed with exit code 128
+          Waiting 14 seconds before trying again
+          /usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8d1e0b7c4a9f2e63b5c71d0a4e8f9b2c6d3a1e57:refs/remotes/pull/5204/merge
+          Error: fatal: unable to access 'https://github.com/corvid-labs/monorepo/': Could not resolve host: github.com
+          The process '/usr/bin/git' failed with exit code 128
+          Waiting 19 seconds before trying again
+          /usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8d1e0b7c4a9f2e63b5c71d0a4e8f9b2c6d3a1e57:refs/remotes/pull/5204/merge
+          Error: fatal: unable to access 'https://github.com/corvid-labs/monorepo/': Could not resolve host: github.com
+        Error: The process '/usr/bin/git' failed with exit code 128
+    - module: analytics-ui
+      step: install
+      log: |
+        Fetching the repository
+          /usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8d1e0b7c4a9f2e63b5c71d0a4e8f9b2c6d3a1e57:refs/remotes/pull/5204/merge
+          Error: fatal: unable to access 'https://github.com/corvid-labs/monorepo/': Failed to connect to github.com port 443 after 130147 ms: Couldn't connect to server
+          The process '/usr/bin/git' failed with exit code 128
+          Waiting 11 seconds before trying again
+          /usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +8d1e0b7c4a9f2e63b5c71d0a4e8f9b2c6d3a1e57:refs/remotes/pull/5204/merge
+          Error: fatal: unable to access 'https://github.com/corvid-labs/monorepo/': Could not resolve host: github.com
+        Error: The process '/usr/bin/git' failed with exit code 128
+  install_failures_last_2h: 1
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: the checkout itself failed on DNS/connect to github.com in two jobs; no package was ever installed
+
+- id: runner-shutdown-mid-risk-models
+  pr:
+    modules: [flow-editor-api]
+    files: [services/flow-editor-api/src/flow_editor_api/publish.py, services/flow-editor-api/tests/test_publish.py]
+  failed_jobs:
+    - module: risk-models
+      step: test
+      log: |
+        tests/test_pd_calibration.py::test_isotonic_calibration_is_monotone PASSED [ 40%]
+        tests/test_pd_calibration.py::test_calibration_handles_empty_bucket PASSED [ 41%]
+        tests/test_pd_calibration.py::test_brier_score_matches_reference PASSED [ 41%]
+        tests/test_pd_calibration.py::test_reliability_curve_bins[10] PASSED    [ 42%]
+        tests/test_pd_calibration.py::test_reliability_curve_bins[20] PASSED    [ 42%]
+        tests/test_flow_features.py::test_features_from_published_flow PASSED   [ 43%]
+        tests/test_flow_features.py::test_unknown_node_type_is_ignored PASSED   [ 43%]
+        tests/test_flow_features.py::test_features_from_draft_flow
+        ##[error]The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled.
+        ##[error]The operation was canceled.
+        Cleaning up orphan processes
+        Terminate orphan process: pid (4182) (python)
+        Terminate orphan process: pid (4190) (python)
+  history:
+    "risk-models::test_features_from_draft_flow": {runs: 132, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: the runner got a shutdown signal while a reachable test was still running; that test never reported a result
+
+- id: self-hosted-runner-lost-mid-vitest
+  pr:
+    modules: [ui-kit]
+    files: [frontend/ui-kit/src/components/Select/Select.tsx]
+  failed_jobs:
+    - module: analytics-ui
+      step: test
+      log: |
+        > analytics-ui@0.31.0 test /home/runner/work/monorepo/monorepo/frontend/analytics-ui
+        > vitest run --coverage
+
+         RUN  v2.1.4 /home/runner/work/monorepo/monorepo/frontend/analytics-ui
+              Coverage enabled with v8
+
+         ✓ src/charts/LineChart.test.tsx (12 tests) 412ms
+         ✓ src/charts/Legend.test.tsx (7 tests) 88ms
+         ✓ src/filters/DateRangeFilter.test.tsx (15 tests) 1032ms
+         ↓ src/export/CsvExport.test.tsx (4 tests | 4 skipped)
+         ✓ src/dashboards/DashboardGrid.test.tsx (9 tests) 2210ms
+         ❯ src/filters/SegmentSelect.test.tsx 3/11
+        ##[error]The self-hosted runner: ci-linux-xl-07 lost communication with the server. Verify the machine is running and has a healthy network connection. Anything in your workflow that terminates the runner process, starves it for CPU/Memory, or blocks its network access can cause this error.
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: the runner lost contact with GitHub mid-run; no test had failed when the log stops
+
+- id: postgres-service-container-pull
+  pr:
+    modules: [connectors-kyc]
+    files: [services/connectors-kyc/src/connectors_kyc/vendors/idcheck.py]
+  failed_jobs:
+    - module: connectors-kyc
+      step: test
+      log: |
+        Initialize containers
+        Checking docker version
+          /usr/bin/docker version --format '{{.Server.APIVersion}}'
+          '1.47'
+          Docker daemon API version: '1.47'
+          /usr/bin/docker version --format '{{.Client.APIVersion}}'
+          '1.47'
+          Docker client API version: '1.47'
+        Clean up resources from previous jobs
+          /usr/bin/docker ps --all --quiet --no-trunc --filter "label=4f1a2c"
+          /usr/bin/docker network prune --force --filter "label=4f1a2c"
+        Create local container network
+          /usr/bin/docker network create --label 4f1a2c github_network_6b0d2e9a8c4f4e0f
+          7d3c19a0be52
+        Starting postgres service container
+          /usr/bin/docker pull postgres:16.4
+          Error response from daemon: Get "https://registry-1.docker.io/v2/": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+          Warning: Docker pull failed with exit code 1, back off 4.618 seconds before retry.
+          /usr/bin/docker pull postgres:16.4
+          Error response from daemon: Get "https://registry-1.docker.io/v2/": net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)
+          Warning: Docker pull failed with exit code 1, back off 9.031 seconds before retry.
+          /usr/bin/docker pull postgres:16.4
+          Error response from daemon: Get "https://registry-1.docker.io/v2/": dial tcp: lookup registry-1.docker.io on 127.0.0.53:53: read udp 127.0.0.1:48211->127.0.0.53:53: i/o timeout
+        ##[error]Docker pull failed with exit code 1
+  install_failures_last_2h: 2
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: the job never started tests; the runner could not pull the postgres service image (connection timeouts and DNS i/o timeout)
+
+- id: artifact-download-retries-exhausted
+  pr:
+    modules: [sdk-js]
+    files: [frontend/sdk-js/src/client/http.ts]
+  failed_jobs:
+    - module: web-app
+      step: test
+      log: |
+        Run actions/download-artifact@v4
+          with:
+            name: sdk-js-dist
+            path: frontend/sdk-js/dist
+            merge-multiple: false
+            repository: corvid-labs/monorepo
+            run-id: 11583920417
+        Downloading single artifact
+        Preparing to download the following artifacts:
+        - sdk-js-dist (ID: 2148830917, Size: 1843210)
+        Redirecting to blob download url: https://productionresultssa4.blob.core.windows.net/actions-results/0c2f.../sdk-js-dist.zip
+        Starting download of artifact to: /home/runner/work/monorepo/monorepo/frontend/sdk-js/dist
+        Attempt 1 of 5 failed with error: Request timeout: /actions-results/0c2f.../sdk-js-dist.zip. Retrying request in 3000 ms...
+        Attempt 2 of 5 failed with error: read ECONNRESET. Retrying request in 4618 ms...
+        Attempt 3 of 5 failed with error: read ECONNRESET. Retrying request in 7302 ms...
+        Attempt 4 of 5 failed with error: Request timeout: /actions-results/0c2f.../sdk-js-dist.zip. Retrying request in 11988 ms...
+        Attempt 5 of 5 failed with error: socket hang up. Retrying request in 16021 ms...
+        Error: Unable to download artifact(s): Unable to download and extract artifact: Artifact download failed after 5 retries.
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: downloading the sdk-js build artifact timed out and reset five times; no test ran
+
+- id: spot-runner-reclaimed-during-jest
+  pr:
+    modules: [ui-kit]
+    files: [frontend/ui-kit/src/components/Popover/Popover.tsx, frontend/ui-kit/src/hooks/useFloating.ts]
+  failed_jobs:
+    - module: flow-editor
+      step: test
+      log: |
+        PASS src/canvas/NodeDrag.test.tsx (8.412 s)
+        PASS src/canvas/EdgeRouting.test.tsx
+        PASS src/panels/PropertiesPanel.test.tsx (5.03 s)
+        PASS src/panels/NodePalette.test.tsx
+          ● Console
+
+            console.warn
+              Warning: An update to NodePalette inside a test was not wrapped in act(...).
+
+              When testing, code that causes React state updates should be wrapped into act(...):
+
+              at NodePalette (src/panels/NodePalette.tsx:22:3)
+
+        RUNS src/panels/ConditionBuilder.test.tsx
+        RUNS src/canvas/Minimap.test.tsx
+        ci-runner-agent[2211]: spot interruption notice received, instance terminating in 120s; draining
+        ##[error]The runner has received a shutdown signal. This can happen when the runner service is stopped, or a manually started runner is canceled.
+        ##[error]Process completed with exit code 143.
+        ##[error]The operation was canceled.
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: the spot instance was reclaimed (SIGTERM, exit 143) while two suites were still RUNS; nothing failed
+
+- id: lfs-fetch-connection-reset
+  pr:
+    modules: [docs-site]
+    files: [frontend/docs-site/src/pages/guides/publishing-flows.mdx, frontend/docs-site/static/img/publish-dialog.png]
+  failed_jobs:
+    - module: docs-site
+      step: install
+      log: |
+        Run actions/checkout@v4
+          with:
+            lfs: true
+            fetch-depth: 1
+        Syncing repository: corvid-labs/monorepo
+        Fetching the repository
+          /usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +c71a09e3f2b84d56a0e1b9f7d3c2a8e45b6f0d19:refs/remotes/pull/5233/merge
+          From https://github.com/corvid-labs/monorepo
+           * [new ref]         c71a09e3f2b84d56a0e1b9f7d3c2a8e45b6f0d19 -> pull/5233/merge
+        Fetching LFS objects
+          /usr/bin/git lfs fetch origin refs/remotes/pull/5233/merge
+          fetch: Fetching reference refs/remotes/pull/5233/merge
+          batch response: Post "https://github.com/corvid-labs/monorepo.git/info/lfs/objects/batch": read tcp 10.1.0.44:51822->192.0.2.10:443: read: connection reset by peer
+          error: failed to fetch some objects from 'https://github.com/corvid-labs/monorepo.git/info/lfs'
+          The process '/usr/bin/git' failed with exit code 2
+          Waiting 12 seconds before trying again
+          /usr/bin/git lfs fetch origin refs/remotes/pull/5233/merge
+          batch response: Post "https://github.com/corvid-labs/monorepo.git/info/lfs/objects/batch": EOF
+          error: failed to fetch some objects from 'https://github.com/corvid-labs/monorepo.git/info/lfs'
+        Error: The process '/usr/bin/git' failed with exit code 2
+  install_failures_last_2h: 1
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: checkout's LFS batch request was reset by the network twice; a git transport failure, not a package install
+
+- id: enospc-writing-playwright-traces
+  pr:
+    modules: [admin-console]
+    files: [frontend/admin-console/src/audit/AuditTimeline.tsx]
+  failed_jobs:
+    - module: admin-console
+      step: test
+      log: |
+        Running 146 tests using 2 workers
+
+          ✓   1 [chromium] › src/users/UserTable.test.tsx:14:5 › user table › sorts by last login (1.2s)
+          ✓   2 [chromium] › src/users/UserTable.test.tsx:29:5 › user table › filters by role (842ms)
+          ✓   3 [chromium] › src/roles/RoleEditor.test.tsx:11:5 › role editor › adds a permission (1.9s)
+          ...
+          ✓  59 [chromium] › src/audit/AuditTimeline.test.tsx:8:5 › audit timeline › renders an empty state (311ms)
+          ✓  60 [chromium] › src/audit/AuditTimeline.test.tsx:15:5 › audit timeline › groups events by day (704ms)
+          ✘  61 [chromium] › src/audit/AuditTimeline.test.tsx:22:5 › audit timeline › renders 500 events (128ms)
+        Error: ENOSPC: no space left on device, write
+
+            at writeSync (node:fs:933:3)
+            at Zip.<anonymous> (/home/runner/work/monorepo/monorepo/node_modules/.pnpm/playwright-core@1.48.2/node_modules/playwright-core/lib/utils/zipFile.js:61:9)
+            at TraceRecorder._flush (/home/runner/work/monorepo/monorepo/node_modules/.pnpm/playwright-core@1.48.2/node_modules/playwright-core/lib/server/trace/recorder/tracing.js:402:14)
+        ##[error]No space left on device : '/home/runner/runners/2.321.0/_diag/pages/3f0c9b1e-7a44-4d0e-b5b1-1c2a9e8f7d60_5c1e2d3a-0b9f-4a7e-8c6d-2f1e0a9b8c7d_1.log'
+        ##[error]Process completed with exit code 1.
+  history:
+    "admin-console::renders_500_events": {runs: 88, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: infra
+    next_step: rerun_failed_jobs
+  why: the changed module's test is marked failed only because Playwright could not write its trace (ENOSPC) and the runner's own log ran out of disk
+
+# ---------------------------------------------------------------- dependency
+
+- id: uv-wheel-download-503
+  pr:
+    modules: [billing]
+    files: [services/billing/src/billing/invoice.py, services/billing/tests/test_invoice.py]
+  failed_jobs:
+    - module: billing
+      step: install
+      log: |
+        Run uv sync --frozen --package billing --extra test
+        Using CPython 3.12.7 interpreter at: /opt/hostedtoolcache/Python/3.12.7/x64/bin/python3
+        Creating virtual environment at: .venv
+          × Failed to download `python-dateutil==2.9.0.post0`
+          ├─▶ Failed to fetch: `https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl`
+          ╰─▶ HTTP status server error (503 Service Unavailable) for url (https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl)
+          help: `python-dateutil` (v2.9.0.post0) was included because `billing` (v1.12.0) depends on `pandas` (v2.2.3) which depends on `python-dateutil`
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 14
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the package host returned 503 for a locked wheel and 14 pull requests failed at install in the last two hours
+
+- id: npm-e503-rollup-native
+  pr:
+    modules: [sdk-js]
+    files: [frontend/sdk-js/src/client/retry.ts]
+  failed_jobs:
+    - module: sdk-js
+      step: install
+      log: |
+        Run npm ci --no-audit --no-fund
+        npm WARN deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+        npm WARN deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+        npm WARN deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+        npm ERR! code E503
+        npm ERR! 503 Service Unavailable - GET https://registry.npmjs.org/@rollup/rollup-linux-x64-gnu/-/rollup-linux-x64-gnu-4.24.0.tgz - Service Unavailable
+
+        npm ERR! A complete log of this run can be found in: /home/runner/.npm/_logs/2026-10-29T11_02_44_118Z-debug-0.log
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 9
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the npm registry answered 503 for a tarball in an unchanged lock file, and nine pull requests failed at install recently
+
+- id: pnpm-502-despite-lockfile-change
+  pr:
+    modules: [web-app]
+    files: [frontend/web-app/package.json, pnpm-lock.yaml, frontend/web-app/src/routes/Settings.tsx]
+  failed_jobs:
+    - module: web-app
+      step: install
+      log: |
+        Run pnpm install --frozen-lockfile --filter "web-app..."
+        Scope: 3 of 9 workspace projects
+        Lockfile is up to date, resolution step is skipped
+        Progress: resolved 1, reused 0, downloaded 0, added 0
+        Packages: +912
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        Progress: resolved 912, reused 640, downloaded 188, added 801
+         WARN  GET https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.24.0.tgz error (ERR_PNPM_FETCH_502). Will retry in 10 seconds. 2 retries left.
+        Progress: resolved 912, reused 640, downloaded 190, added 802
+         WARN  GET https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.24.0.tgz error (ERR_PNPM_FETCH_502). Will retry in 1 minute. 1 retries left.
+         ERR_PNPM_FETCH_502  GET https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.24.0.tgz: Bad Gateway - 502
+
+        This error happened while installing a direct dependency of /home/runner/work/monorepo/monorepo/frontend/ui-kit
+
+        Progress: resolved 912, reused 640, downloaded 191, added 803
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 11
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the PR touches the lock file but the lock was accepted; the failure is a registry 502 on an unrelated ui-kit dependency hitting 11 pull requests
+
+- id: pip-read-timeouts-then-no-versions
+  pr:
+    modules: [notifications]
+    files: [services/notifications/src/notifications/templates/digest.py]
+  failed_jobs:
+    - module: notifications
+      step: install
+      log: |
+        Run pip install -r services/notifications/requirements/test.txt
+        Collecting jinja2==3.1.4 (from -r services/notifications/requirements/test.txt (line 12))
+          Using cached jinja2-3.1.4-py3-none-any.whl.metadata (2.6 kB)
+        Collecting aiosmtplib==3.0.2 (from -r services/notifications/requirements/test.txt (line 3))
+          Downloading aiosmtplib-3.0.2-py3-none-any.whl.metadata (3.6 kB)
+        WARNING: Retrying (Retry(total=4, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='pypi.org', port=443): Read timed out. (read timeout=15)")': /simple/smsgate-client/
+        WARNING: Retrying (Retry(total=3, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='pypi.org', port=443): Read timed out. (read timeout=15)")': /simple/smsgate-client/
+        WARNING: Retrying (Retry(total=2, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='pypi.org', port=443): Read timed out. (read timeout=15)")': /simple/smsgate-client/
+        WARNING: Retrying (Retry(total=1, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='pypi.org', port=443): Read timed out. (read timeout=15)")': /simple/smsgate-client/
+        WARNING: Retrying (Retry(total=0, connect=None, read=None, redirect=None, status=None)) after connection broken by 'ReadTimeoutError("HTTPSConnectionPool(host='pypi.org', port=443): Read timed out. (read timeout=15)")': /simple/smsgate-client/
+        ERROR: Could not find a version that satisfies the requirement smsgate-client==9.3.1 (from versions: none)
+        ERROR: No matching distribution found for smsgate-client==9.3.1
+
+        [notice] A new release of pip is available: 24.2 -> 24.3.1
+        [notice] To update, run: pip install --upgrade pip
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 7
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: '"from versions: none" follows five read timeouts against the index; requirements are unchanged and seven pull requests failed at install'
+
+- id: yarn-classic-500-docs-site
+  pr:
+    modules: [docs-site]
+    files: [frontend/docs-site/src/pages/guides/rules.mdx]
+  failed_jobs:
+    - module: docs-site
+      step: install
+      log: |
+        Run yarn install --frozen-lockfile --network-timeout 100000
+        yarn install v1.22.22
+        [1/4] Resolving packages...
+        [2/4] Fetching packages...
+        info There appears to be trouble with your network connection. Retrying...
+        info There appears to be trouble with your network connection. Retrying...
+        error An unexpected error occurred: "https://registry.yarnpkg.com/remark-gfm/-/remark-gfm-4.0.0.tgz: Request failed \"500 Internal Server Error\"".
+        info If you think this is a bug, please open an issue with the stack trace below.
+        info Visit https://yarnpkg.com/en/docs/cli/install for documentation about this command.
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 4
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the registry returned 500 for a locked tarball on a docs-only change; four pull requests failed at install
+
+- id: setuptools-release-breaks-sdist-build
+  pr:
+    modules: [connectors-bureau]
+    files: [services/connectors-bureau/src/connectors_bureau/client.py, services/connectors-bureau/tests/test_client.py]
+  failed_jobs:
+    - module: connectors-bureau
+      step: install
+      log: |
+        Run pip install -e "services/connectors-bureau[test]" -c constraints/py312.txt
+        Obtaining file:///home/runner/work/monorepo/monorepo/services/connectors-bureau
+          Installing build dependencies: started
+          Installing build dependencies: finished with status 'done'
+        Collecting lxml==5.3.0 (from connectors-bureau==2.3.0)
+          Using cached lxml-5.3.0-cp312-cp312-manylinux_2_28_x86_64.whl.metadata (3.8 kB)
+        Collecting xmlsig-lite==0.9.4 (from connectors-bureau==2.3.0)
+          Downloading xmlsig_lite-0.9.4.tar.gz (61 kB)
+          Installing build dependencies: started
+          Installing build dependencies: finished with status 'done'
+          Getting requirements to build wheel: started
+          Getting requirements to build wheel: finished with status 'error'
+          error: subprocess-exited-with-error
+
+          × Getting requirements to build wheel did not run successfully.
+          │ exit code: 1
+          ╰─> [16 lines of output]
+              Traceback (most recent call last):
+                File "/opt/hostedtoolcache/Python/3.12.7/x64/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 373, in <module>
+                  main()
+                File "/opt/hostedtoolcache/Python/3.12.7/x64/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 357, in main
+                  json_out["return_val"] = hook(**hook_input["kwargs"])
+                File "/tmp/pip-build-env-k2x8w1qz/overlay/lib/python3.12/site-packages/setuptools/build_meta.py", line 333, in get_requires_for_build_wheel
+                  return self._get_build_requires(config_settings, requirements=[])
+                File "/tmp/pip-build-env-k2x8w1qz/overlay/lib/python3.12/site-packages/setuptools/build_meta.py", line 303, in _get_build_requires
+                  self.run_setup()
+                File "/tmp/pip-build-env-k2x8w1qz/overlay/lib/python3.12/site-packages/setuptools/build_meta.py", line 319, in run_setup
+                  exec(code, locals())
+                File "<string>", line 4, in <module>
+              ImportError: cannot import name 'convert_path' from 'setuptools.dist' (/tmp/pip-build-env-k2x8w1qz/overlay/lib/python3.12/site-packages/setuptools/dist.py)
+              [end of output]
+
+          note: This error originates from a subprocess, and is likely not a problem with pip.
+        error: subprocess-exited-with-error
+
+        × Getting requirements to build wheel did not run successfully.
+        │ exit code: 1
+        ╰─> See above for output.
+
+        note: This error originates from a subprocess, and is likely not a problem with pip.
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 19
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: an unchanged sdist stopped building because build isolation pulled a new setuptools; 19 pull requests failed at install, so it is upstream
+
+- id: pnpm-tarball-integrity-mismatch
+  pr:
+    modules: [admin-console]
+    files: [frontend/admin-console/src/users/InviteForm.tsx]
+  failed_jobs:
+    - module: admin-console
+      step: install
+      log: |
+        Run pnpm install --frozen-lockfile --filter "admin-console..."
+        Scope: 2 of 9 workspace projects
+        Lockfile is up to date, resolution step is skipped
+        Packages: +744
+        ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+        Progress: resolved 744, reused 702, downloaded 31, added 739
+         ERR_PNPM_TARBALL_INTEGRITY  Got unexpected checksum for "https://registry.npmjs.org/@tanstack/table-core/-/table-core-8.20.5.tgz". Wanted "sha512-P9dF7XbibHph2PFRz8gfBKEXEY/HJPOhym8CHmjF8y3q5mWpKx9xtZapXQUWCgkqvsK0R46Azuz+VaxD4Xl+Tg==". Got "sha512-2bN6dkxIzu3S1MEEOtqAnHW8Hxkv1pvBTGLtLfnITzC6TqhQvBnzA8yC0CEhD7Bc5wrQDqR8gXgSfhzVLShxPg==".
+
+        This error happened while installing a direct dependency of /home/runner/work/monorepo/monorepo/frontend/admin-console
+
+        Progress: resolved 744, reused 702, downloaded 32, added 740
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 12
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the registry served a tarball whose checksum no longer matches the unchanged lock file; 12 pull requests failed at install
+
+- id: internal-mirror-missing-release
+  pr:
+    modules: [rules-engine]
+    files: [services/rules-engine/src/rules_engine/compiler/folding.py, services/rules-engine/tests/test_folding.py]
+  failed_jobs:
+    - module: rules-engine
+      step: install
+      log: |
+        Run pip install --index-url "$PIP_INDEX_URL" -e "services/rules-engine[test]" -c constraints/py312.txt
+        Looking in indexes: https://pypi.mirror.corvid.example/simple
+        Obtaining file:///home/runner/work/monorepo/monorepo/services/rules-engine
+          Installing build dependencies: started
+          Installing build dependencies: finished with status 'done'
+          Checking if build backend supports build_editable: started
+          Checking if build backend supports build_editable: finished with status 'done'
+        Collecting pydantic==2.9.2 (from rules-engine==1.8.0)
+          Using cached https://pypi.mirror.corvid.example/packages/pydantic-2.9.2-py3-none-any.whl (434 kB)
+        INFO: pip is looking at multiple versions of rules-engine to determine which version is compatible with other requirements. This could take a while.
+        ERROR: Could not find a version that satisfies the requirement orjson==3.10.11 (from rules-engine) (from versions: 3.10.6, 3.10.7, 3.10.9)
+        ERROR: No matching distribution found for orjson==3.10.11
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 8
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the pin is unchanged and the internal mirror suddenly lists fewer releases; eight pull requests failed at install
+
+- id: poetry-no-installation-candidates
+  pr:
+    modules: [data-sync]
+    files: [services/data-sync/src/data_sync/cursor.py]
+  failed_jobs:
+    - module: data-sync
+      step: install
+      log: |
+        Run poetry install --no-interaction --no-root --with test
+        Installing dependencies from lock file
+
+        Package operations: 64 installs, 0 updates, 0 removals
+
+          - Installing attrs (24.2.0)
+          - Installing idna (3.10)
+          - Installing sniffio (1.3.1)
+          - Installing anyio (4.6.2.post1)
+          - Installing certifi (2024.8.30)
+          - Installing h11 (0.14.0)
+          - Installing httpcore (1.0.6)
+          - Installing msgspec (0.18.6): Failed
+
+          RuntimeError
+
+          Unable to find installation candidates for msgspec (0.18.6)
+
+          at /opt/poetry/venv/lib/python3.12/site-packages/poetry/installation/chooser.py:74 in choose_for
+               70│
+               71│             links.append(link)
+               72│
+               73│         if not links:
+            →  74│             raise RuntimeError(f"Unable to find installation candidates for {package}")
+               75│
+               76│         # Get the best link
+               77│         chooser = WheelChooser(self._env, self._pool)
+               78│
+
+        Cannot install msgspec.
+
+          - Installing httpx (0.27.2)
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 10
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the lock file is unchanged and the index returned no files for a locked release; ten pull requests failed at install
+
+- id: uv-reset-despite-pyproject-change
+  pr:
+    modules: [connectors-banking]
+    files: [services/connectors-banking/pyproject.toml, uv.lock, services/connectors-banking/src/connectors_banking/retry.py]
+  failed_jobs:
+    - module: connectors-banking
+      step: install
+      log: |
+        Run uv sync --frozen --package connectors-banking --extra test
+        Using CPython 3.12.7 interpreter at: /opt/hostedtoolcache/Python/3.12.7/x64/bin/python3
+        Creating virtual environment at: .venv
+        Prepared 41 packages in 3.82s
+          × Failed to download `cryptography==43.0.3`
+          ├─▶ Failed to fetch: `https://files.pythonhosted.org/packages/2c/f3/b2d5a1c0e9f7c84c3e5a8bd0d6b1e8f6a9c7d2e4b5a3f1c0e9d8b7a6f5e4d3c2/cryptography-43.0.3-cp39-abi3-manylinux_2_28_x86_64.whl`
+          ├─▶ Request failed after 3 retries
+          ├─▶ error sending request for url (https://files.pythonhosted.org/packages/2c/f3/b2d5a1c0e9f7c84c3e5a8bd0d6b1e8f6a9c7d2e4b5a3f1c0e9d8b7a6f5e4d3c2/cryptography-43.0.3-cp39-abi3-manylinux_2_28_x86_64.whl)
+          ├─▶ client error (SendRequest)
+          ╰─▶ connection error: Connection reset by peer (os error 104)
+          help: `cryptography` (v43.0.3) was included because `connectors-banking` (v0.22.0) depends on `auth` (v3.1.0) which depends on `pyjwt[crypto]` (v2.9.0) which depends on `cryptography`
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 9
+  confirming_rerun: null
+  expect:
+    kind: dependency
+    next_step: wait_and_rerun
+  why: the PR edits pyproject and uv.lock, but the failure is connection resets fetching an old locked wheel, and nine pull requests failed at install
+
+# ---------------------------------------------------------------- flaky
+
+- id: reporting-not-reached-by-billing
+  pr:
+    modules: [billing]
+    files: [services/billing/src/billing/tax/rates.py, services/billing/tests/test_rates.py]
+  failed_jobs:
+    - module: reporting
+      step: test
+      log: |
+        ============================= test session starts ==============================
+        platform linux -- Python 3.12.7, pytest-8.3.3, pluggy-1.5.0
+        rootdir: /home/runner/work/monorepo/monorepo/services/reporting
+        configfile: pyproject.toml
+        plugins: cov-5.0.0, freezegun-0.4.2
+        collected 214 items
+
+        tests/test_exports.py ...................................                [ 16%]
+        tests/test_rollups.py .........F.........................                [ 32%]
+        tests/test_schedules.py .......................................................... [ 59%]
+        tests/test_warehouse.py ........................................s....... [ 83%]
+        tests/test_widgets.py ....................................               [100%]
+
+        =================================== FAILURES ===================================
+        __________________ test_monthly_rollup_crosses_dst_boundary ___________________
+
+        warehouse = <reporting.testing.FakeWarehouse object at 0x7f3b2c1d9e50>
+
+            def test_monthly_rollup_crosses_dst_boundary(warehouse):
+                rows = rollup.monthly(warehouse, month="2026-03", tz="Europe/Berlin")
+        >       assert rows[-1].closed_at.hour == 23
+        E       AssertionError: assert 0 == 23
+        E        +  where 0 = datetime.datetime(2026, 4, 1, 0, 0, 3, tzinfo=zoneinfo.ZoneInfo(key='Europe/Berlin')).hour
+        E        +    where datetime.datetime(2026, 4, 1, 0, 0, 3, tzinfo=zoneinfo.ZoneInfo(key='Europe/Berlin')) = MonthRow(month='2026-03', total=Decimal('18211.40'), closed_at=...).closed_at
+
+        tests/test_rollups.py:88: AssertionError
+        =============================== warnings summary ===============================
+        tests/test_warehouse.py::test_bulk_load_chunks
+          /home/runner/work/monorepo/monorepo/services/reporting/src/reporting/warehouse.py:142: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version.
+
+        -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+
+        ---------- coverage: platform linux, python 3.12.7-final-0 -----------
+        Name                                   Stmts   Miss  Cover
+        ----------------------------------------------------------
+        src/reporting/__init__.py                  4      0   100%
+        src/reporting/exports/csv_writer.py       77      3    96%
+        src/reporting/rollup.py                  188     12    94%
+        src/reporting/schedules.py               131      9    93%
+        src/reporting/warehouse.py               240     31    87%
+        ----------------------------------------------------------
+        TOTAL                                   1922    141    93%
+
+        =========================== short test summary info ============================
+        FAILED tests/test_rollups.py::test_monthly_rollup_crosses_dst_boundary - AssertionError: assert 0 == 23
+        ================== 1 failed, 212 passed, 1 skipped, 1 warning in 41.07s ==================
+  history:
+    "reporting::test_monthly_rollup_crosses_dst_boundary": {runs: 96, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: reporting depends only on core, so a billing change cannot reach it; the test is timing-dependent (closed three seconds after midnight)
+
+- id: audit-log-not-reached-by-auth
+  pr:
+    modules: [auth]
+    files: [services/auth/src/auth/permissions.py, services/auth/src/auth/actor.py]
+  failed_jobs:
+    - module: audit-log
+      step: test
+      log: |
+        [gw2] [ 61%] PASSED tests/test_retention.py::test_purge_skips_legal_hold
+        [gw1] [ 62%] PASSED tests/test_retention.py::test_purge_is_batched[500]
+        [gw0] [ 62%] PASSED tests/test_retention.py::test_purge_is_batched[5000]
+        [gw3] [ 63%] FAILED tests/test_append.py::test_actor_events_are_ordered_under_concurrency
+        [gw2] [ 63%] PASSED tests/test_export.py::test_export_is_ndjson
+        [gw1] [ 64%] PASSED tests/test_export.py::test_export_redacts_ip
+        ...
+        [gw3] [100%] PASSED tests/test_query.py::test_query_by_actor_paginates
+
+        =================================== FAILURES ===================================
+        _______________ test_actor_events_are_ordered_under_concurrency ________________
+        [gw3] linux -- Python 3.12.7 /home/runner/work/monorepo/monorepo/.venv/bin/python
+
+        log_store = <audit_log.store.SqliteStore object at 0x7f9a8c3e1f10>
+
+            def test_actor_events_are_ordered_under_concurrency(log_store):
+                with ThreadPoolExecutor(max_workers=16) as pool:
+                    list(pool.map(lambda i: log_store.append(actor_event(i)), range(4096)))
+                seqs = [e.seq for e in log_store.read_all()]
+        >       assert seqs == sorted(seqs), f"sequence gap after {len(seqs)} appends"
+        E       AssertionError: sequence gap after 4096 appends
+        E       assert [1, 2, 3, 4, 5, 6, ...] == [1, 2, 3, 4, 5, 6, ...]
+        E
+        E         At index 2817 diff: 2819 != 2818
+        E         Use -v to get more diff
+
+        tests/test_append.py:63: AssertionError
+        =========================== short test summary info ============================
+        FAILED tests/test_append.py::test_actor_events_are_ordered_under_concurrency - AssertionError: sequence gap after 4096 appends
+        ============ 1 failed, 341 passed, 2 skipped in 38.92s (0:00:38) =============
+  history:
+    "audit-log::test_actor_events_are_ordered_under_concurrency": {runs: 204, fails: 0, flips: 0}
+  install_failures_last_2h: 1
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: auth depends on audit-log, not the other way round, so the auth change cannot reach this concurrency test despite the name
+
+- id: data-sync-flippy-history-decides
+  pr:
+    modules: [decision-runtime]
+    files: [libs/decision-runtime/src/decision_runtime/evaluator.py, libs/decision-runtime/tests/test_evaluator.py]
+  failed_jobs:
+    - module: data-sync
+      step: test
+      log: |
+        tests/test_incremental.py::test_incremental_sync_resumes_after_cursor_reset FAILED [ 47%]
+        tests/test_incremental.py::test_incremental_sync_skips_tombstones PASSED [ 48%]
+        tests/test_kyc_mirror.py::test_mirror_maps_vendor_status PASSED         [ 49%]
+        ...
+        tests/test_scheduler.py::test_backoff_caps_at_ten_minutes PASSED        [100%]
+
+        =================================== FAILURES ===================================
+        _______________ test_incremental_sync_resumes_after_cursor_reset _______________
+
+        fake_upstream = <data_sync.testing.FakeUpstream running on 127.0.0.1:43117>
+
+            async def test_incremental_sync_resumes_after_cursor_reset(fake_upstream):
+                fake_upstream.reset_cursor_after(250)
+                job = SyncJob(source=fake_upstream.url, batch=100)
+        >       result = await asyncio.wait_for(job.run_until_caught_up(), timeout=2.0)
+
+        tests/test_incremental.py:112:
+        _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+        /opt/hostedtoolcache/Python/3.12.7/x64/lib/python3.12/asyncio/tasks.py:519: in wait_for
+            async with timeouts.timeout(timeout):
+        _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+            async def __aexit__(self, exc_type, exc_val, exc_tb):
+                ...
+                    if self._task.uncancel() <= self._cancelling and exc_type is not None:
+                        # Since there are no new cancel requests, we're
+                        # handling this.
+                        if issubclass(exc_type, exceptions.CancelledError):
+        >                   raise TimeoutError from exc_val
+        E                   TimeoutError
+
+        /opt/hostedtoolcache/Python/3.12.7/x64/lib/python3.12/asyncio/timeouts.py:115: TimeoutError
+        =========================== short test summary info ============================
+        FAILED tests/test_incremental.py::test_incremental_sync_resumes_after_cursor_reset - TimeoutError
+        ======================= 1 failed, 227 passed in 64.18s (0:01:04) =======================
+  history:
+    "data-sync::test_incremental_sync_resumes_after_cursor_reset": {runs: 160, fails: 14, flips: 13}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: the change does reach data-sync, but this test failed 14 of 160 runs and 13 of those passed on retry of the same commit
+
+- id: bureau-timeout-rerun-passed
+  pr:
+    modules: [schemas]
+    files: [libs/schemas/src/schemas/bureau/report.py, libs/schemas/tests/test_bureau_report.py]
+  failed_jobs:
+    - module: connectors-bureau
+      step: test
+      log: |
+        ============================= test session starts ==============================
+        platform linux -- Python 3.12.7, pytest-8.3.3, pluggy-1.5.0
+        rootdir: /home/runner/work/monorepo/monorepo/services/connectors-bureau
+        configfile: pyproject.toml
+        plugins: respx-0.21.1, cov-5.0.0, anyio-4.6.2
+        collected 131 items
+
+        tests/test_client.py ..............F......                               [ 16%]
+        tests/test_parse_report.py ............................................. [ 50%]
+        tests/test_scores.py ................................................... [ 89%]
+        tests/test_throttle.py ..............                                    [100%]
+
+        =================================== FAILURES ===================================
+        _____________________ test_report_fetch_retries_on_429 ______________________
+
+            def test_report_fetch_retries_on_429(stub_bureau):
+                stub_bureau.respond_with(429, times=2).then(200, body=REPORT_V3)
+        >       report = client.fetch_report("DE-881-2207", timeout=0.5)
+
+        tests/test_client.py:74:
+        _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+        src/connectors_bureau/client.py:58: in fetch_report
+            resp = self._http.get(f"/reports/{ref}", timeout=timeout)
+        .venv/lib/python3.12/site-packages/httpx/_client.py:1066: in get
+            return self.request(
+        .venv/lib/python3.12/site-packages/httpx/_transports/default.py:83: in map_httpcore_exceptions
+            raise mapped_exc(message) from exc
+        E       httpx.ReadTimeout: timed out
+
+        .venv/lib/python3.12/site-packages/httpx/_transports/default.py:83: ReadTimeout
+        =========================== short test summary info ============================
+        FAILED tests/test_client.py::test_report_fetch_retries_on_429 - httpx.ReadTimeout: timed out
+        ======================== 1 failed, 130 passed in 22.40s ========================
+  history:
+    "connectors-bureau::test_report_fetch_retries_on_429": {runs: 118, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: passed
+  expect:
+    kind: flaky
+    next_step: propose_quarantine
+  why: reachable and no history, but the confirming rerun of the same commit passed, so the read timeout against the stub is not the change
+
+- id: autosave-debounce-rerun-passed
+  pr:
+    modules: [flow-editor]
+    files: [frontend/flow-editor/src/autosave/useAutosave.ts]
+  failed_jobs:
+    - module: flow-editor
+      step: test
+      log: |
+        > flow-editor@1.4.0 test /home/runner/work/monorepo/monorepo/frontend/flow-editor
+        > vitest run
+
+         RUN  v2.1.4 /home/runner/work/monorepo/monorepo/frontend/flow-editor
+
+         ✓ src/canvas/NodeDrag.test.tsx (14 tests) 903ms
+         ✓ src/panels/ConditionBuilder.test.tsx (22 tests) 1288ms
+         ❯ src/autosave/useAutosave.test.tsx (6 tests | 1 failed) 1904ms
+           × useAutosave > autosaves after debounce 841ms
+         ✓ src/history/undoStack.test.ts (19 tests) 44ms
+
+        ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+         FAIL  src/autosave/useAutosave.test.tsx > useAutosave > autosaves after debounce
+        AssertionError: expected "spy" to be called 1 times, but got 0 times
+         ❯ src/autosave/useAutosave.test.tsx:41:22
+             39|     act(() => { vi.advanceTimersByTime(800) })
+             40|     await flushPromises()
+             41|     expect(saveFlow).toHaveBeenCalledTimes(1)
+               |                      ^
+             42|   })
+             43|
+
+        ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+         Test Files  1 failed | 38 passed (39)
+              Tests  1 failed | 402 passed | 3 skipped (406)
+           Start at  10:12:44
+           Duration  27.31s (transform 3.12s, setup 6.40s, collect 11.02s, tests 18.77s, environment 14.90s, prepare 4.31s)
+
+         ELIFECYCLE  Test failed. See more logs for details.
+        ##[error]Process completed with exit code 1.
+  history:
+    "flow-editor::autosaves_after_debounce": {runs: 301, fails: 9, flips: 9}
+  install_failures_last_2h: 0
+  confirming_rerun: passed
+  expect:
+    kind: flaky
+    next_step: propose_quarantine
+  why: the test lives in the changed module but flipped on all 9 of its past failures and the confirming rerun passed
+
+- id: quarantined-bulk-invite-toast
+  pr:
+    modules: [ui-kit]
+    files: [frontend/ui-kit/src/components/Table/Table.tsx, frontend/ui-kit/src/components/Table/Table.test.tsx]
+  failed_jobs:
+    - module: admin-console
+      step: test
+      log: |
+        PASS src/roles/RoleEditor.test.tsx (9.204 s)
+        PASS src/users/UserTable.test.tsx (6.771 s)
+        FAIL src/users/BulkInvite.test.tsx (12.881 s)
+          ● BulkInvite › bulk invite shows progress toast
+
+            TestingLibraryElementError: Unable to find role="status" and name `/3 of 3 invited/i`
+
+            Ignored nodes: comments, script, style
+            <body>
+              <div>
+                <form
+                  aria-label="Bulk invite"
+                >
+                  <button
+                    class="uk-button uk-button--primary"
+                    disabled=""
+                  >
+                    Sending…
+                  </button>
+                </form>
+              </div>
+            </body>
+
+              46 |     await user.click(screen.getByRole('button', { name: /send invites/i }));
+              47 |     jest.advanceTimersByTime(1500);
+            > 48 |     expect(await screen.findByRole('status', { name: /3 of 3 invited/i })).toBeVisible();
+                 |                         ^
+              49 |   });
+              50 |
+
+              at waitForWrapper (../../node_modules/.pnpm/@testing-library+dom@10.4.0/node_modules/@testing-library/dom/dist/wait-for.js:163:27)
+              at Object.<anonymous> (src/users/BulkInvite.test.tsx:48:25)
+
+        PASS src/settings/SsoSettings.test.tsx
+
+        Test Suites: 1 failed, 57 passed, 58 total
+        Tests:       1 failed, 3 skipped, 611 passed, 615 total
+        Snapshots:   44 passed, 44 total
+        Time:        71.402 s
+        Ran all test suites.
+         ELIFECYCLE  Test failed. See more logs for details.
+  history:
+    "admin-console::bulk_invite_shows_progress_toast": {runs: 212, fails: 23, flips: 21}
+  quarantined: ["admin-console::bulk_invite_shows_progress_toast"]
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: the only failure is an already-quarantined test that flipped 21 of 23 times; the Table change reaches admin-console but nothing else failed
+
+- id: report-viewer-not-reached-by-reporting
+  pr:
+    modules: [reporting]
+    files: [services/reporting/src/reporting/api/pagination.py, services/reporting/tests/test_pagination.py]
+  failed_jobs:
+    - module: analytics-ui
+      step: test
+      log: |
+        > analytics-ui@0.31.0 test-ct /home/runner/work/monorepo/monorepo/frontend/analytics-ui
+        > playwright test -c playwright-ct.config.ts
+
+        Running 88 tests using 4 workers
+
+          ✓   1 [chromium] › src/charts/Funnel.test.tsx:9:5 › funnel › renders stages in order (612ms)
+          ✓   2 [chromium] › src/charts/Funnel.test.tsx:24:5 › funnel › hides empty stages (402ms)
+          ...
+          ✘  37 [chromium] › src/reports/ReportViewer.test.tsx:31:5 › report viewer › paginates long reports (5.1s)
+          ✓  38 [chromium] › src/reports/ReportViewer.test.tsx:48:5 › report viewer › shows the generated-at time (388ms)
+          ...
+
+          1) [chromium] › src/reports/ReportViewer.test.tsx:31:5 › report viewer › paginates long reports ──
+
+            Error: Timed out 5000ms waiting for expect(locator).toHaveText(expected)
+
+            Locator: getByTestId('page-indicator')
+            Expected string: "Page 2 of 7"
+            Received string: "Page 1 of 7"
+            Call log:
+              - expect.toHaveText with timeout 5000ms
+              - waiting for getByTestId('page-indicator')
+              -   locator resolved to <span data-testid="page-indicator">Page 1 of 7</span>
+              -   unexpected value "Page 1 of 7"
+
+              39 |     const component = await mount(<ReportViewer report={longReport} pageSize={20} />);
+              40 |     await component.getByRole('button', { name: 'Next page' }).click();
+            > 41 |     await expect(component.getByTestId('page-indicator')).toHaveText('Page 2 of 7');
+                 |                                                           ^
+              42 |   });
+
+            at /home/runner/work/monorepo/monorepo/frontend/analytics-ui/src/reports/ReportViewer.test.tsx:41:59
+
+          1 failed
+            [chromium] › src/reports/ReportViewer.test.tsx:31:5 › report viewer › paginates long reports ──
+          87 passed (1.4m)
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: analytics-ui depends only on ui-kit; a change to the Python reporting service cannot reach a component test that mounts fixture data
+
+- id: docs-site-not-reached-by-sdk-js
+  pr:
+    modules: [sdk-js]
+    files: [frontend/sdk-js/src/client/flows.ts, frontend/sdk-js/src/client/flows.test.ts]
+  failed_jobs:
+    - module: docs-site
+      step: test
+      log: |
+        yarn run v1.22.22
+        $ jest --ci --reporters=default --reporters=jest-junit
+        PASS src/components/Callout.test.tsx
+        PASS src/components/Sidebar.test.tsx (5.118 s)
+        FAIL src/components/CodeTabs.test.tsx (7.902 s)
+          ● CodeTabs › remembers the selected language across tabs
+
+            expect(element).toHaveAttribute("aria-selected", "true") // element.getAttribute("aria-selected") === "true"
+
+            Expected the element to have attribute:
+              aria-selected="true"
+            Received:
+              aria-selected="false"
+
+              61 |     await user.click(screen.getAllByRole('tab', { name: 'TypeScript' })[0]);
+              62 |     const second = screen.getAllByRole('tab', { name: 'TypeScript' })[1];
+            > 63 |     expect(second).toHaveAttribute('aria-selected', 'true');
+                 |                    ^
+              64 |   });
+              65 |
+
+              at Object.toHaveAttribute (src/components/CodeTabs.test.tsx:63:20)
+
+        PASS src/pages/Search.test.tsx
+
+        Test Suites: 1 failed, 23 passed, 24 total
+        Tests:       1 failed, 188 passed, 189 total
+        Snapshots:   12 passed, 12 total
+        Time:        34.07 s
+        Ran all test suites.
+        error Command failed with exit code 1.
+        info Visit https://yarnpkg.com/en/docs/cli/run for documentation about this command.
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: docs-site depends only on ui-kit, not on sdk-js, so the SDK change cannot have broken this code-tab test
+
+- id: smtp-port-in-use-setup-error
+  pr:
+    modules: [flow-editor-api]
+    files: [services/flow-editor-api/src/flow_editor_api/versions.py]
+  failed_jobs:
+    - module: notifications
+      step: test
+      log: |
+        ============================= test session starts ==============================
+        platform linux -- Python 3.12.7, pytest-8.3.3, pluggy-1.5.0
+        rootdir: /home/runner/work/monorepo/monorepo/services/notifications
+        configfile: pyproject.toml
+        plugins: xdist-3.6.1, cov-5.0.0, aiosmtpd-1.4.6
+        created: 2/2 workers
+        2 workers [174 items]
+
+        ..................................E..................................... [ 41%]
+        ........................................................................ [ 82%]
+        ...............................                                          [100%]
+        ==================================== ERRORS ====================================
+        _____________________ ERROR at setup of test_sends_digest_email _____________________
+        [gw1] linux -- Python 3.12.7 /home/runner/work/monorepo/monorepo/.venv/bin/python
+
+            @pytest.fixture
+            def smtp_server():
+                controller = Controller(Sink(), hostname="127.0.0.1", port=8025)
+        >       controller.start()
+
+        tests/conftest.py:31:
+        _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+        .venv/lib/python3.12/site-packages/aiosmtpd/controller.py:205: in start
+            raise self._thread_exception
+        E       OSError: [Errno 98] error while attempting to bind on address ('127.0.0.1', 8025): address already in use
+        =========================== short test summary info ============================
+        ERROR tests/test_email.py::test_sends_digest_email - OSError: [Errno 98] error while attempting to bind on address ('127.0.0.1', 8025): address already in use
+        ======================== 173 passed, 1 error in 19.66s =========================
+  history:
+    "notifications::test_sends_digest_email": {runs: 121, fails: 8, flips: 7}
+  install_failures_last_2h: 3
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: a fixed-port fixture collided between xdist workers; the test errors at setup and has flipped 7 of 8 past failures
+
+- id: scorecard-band-not-reached-by-bureau
+  pr:
+    modules: [connectors-bureau]
+    files: [services/connectors-bureau/src/connectors_bureau/scores.py, services/connectors-bureau/tests/test_scores.py]
+  failed_jobs:
+    - module: risk-models
+      step: test
+      log: |
+        Using --randomly-seed=2817460193
+        ============================= test session starts ==============================
+        platform linux -- Python 3.12.7, pytest-8.3.3, pluggy-1.5.0
+        rootdir: /home/runner/work/monorepo/monorepo/services/risk-models
+        configfile: pyproject.toml
+        plugins: randomly-3.15.0, hypothesis-6.115.5, cov-5.0.0
+        collected 402 items
+
+        tests/test_scorecard.py ......................F.............             [  8%]
+        tests/test_pd_calibration.py .........................................   [ 19%]
+        tests/test_flow_features.py ...........................                  [ 25%]
+        tests/test_training.py ........................................................ [ 39%]
+        ........................................................................ [ 57%]
+        ........................................................................ [ 75%]
+        ........................................................................ [ 93%]
+        ............................                                             [100%]
+
+        =================================== FAILURES ===================================
+        ______________ TestScorecard.test_band_boundaries[edge-high-0.9999] ______________
+
+        self = <tests.test_scorecard.TestScorecard object at 0x7f12c8a0bd90>
+        case = 'edge-high', p = 0.9999
+
+            @pytest.mark.parametrize(("case", "p"), BAND_CASES, ids=BAND_IDS)
+            def test_band_boundaries(self, case, p):
+                model = self.fitted_model()
+        >       assert model.band(p) == EXPECTED_BANDS[case]
+        E       AssertionError: assert 'B' == 'A'
+        E
+        E         - A
+        E         + B
+
+        tests/test_scorecard.py:57: AssertionError
+        ---------------------------------- Hypothesis ----------------------------------
+        You can add @seed(2817460193) to this test or run pytest with --hypothesis-seed=2817460193 to reproduce this failure.
+        =========================== short test summary info ============================
+        FAILED tests/test_scorecard.py::TestScorecard::test_band_boundaries[edge-high-0.9999] - AssertionError: assert 'B' == 'A'
+        ================== 1 failed, 401 passed in 83.55s (0:01:23) ===================
+  history:
+    "risk-models::test_band_boundaries": {runs: 77, fails: 1, flips: 1}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: flaky
+    next_step: rerun_failed_jobs
+  why: connectors-bureau has no dependents, so risk-models cannot be reached; the fit depends on a random seed
+
+# ---------------------------------------------------------------- regression
+
+- id: decline-codes-changed-in-decision-api
+  pr:
+    modules: [decision-api]
+    files: [services/decision-api/src/decision_api/routes/decisions.py, services/decision-api/src/decision_api/decline_codes.py]
+  failed_jobs:
+    - module: decision-api
+      step: test
+      log: |
+        tests/test_decline_codes.py::TestDeclineReasons::test_codes_are_stable_for_api_v2 FAILED [ 22%]
+        tests/test_decline_codes.py::TestDeclineReasons::test_codes_are_documented PASSED [ 23%]
+        tests/test_decline_codes.py::TestDeclineReasons::test_unknown_code_maps_to_other PASSED [ 23%]
+        tests/test_decisions_route.py::test_post_decision_returns_201 PASSED     [ 24%]
+        ...
+        =================================== FAILURES ===================================
+        ____________ TestDeclineReasons.test_codes_are_stable_for_api_v2 _____________
+
+        self = <tests.test_decline_codes.TestDeclineReasons object at 0x7fd0f4a3c8e0>
+
+            def test_codes_are_stable_for_api_v2(self):
+                published = load_fixture("decline_codes_v2.json")
+        >       assert [c.code for c in decline_codes.for_api("v2")] == published
+        E       AssertionError: assert ['D01', 'D02', 'D04', 'D05', 'D07', 'D09'] == ['D01', 'D02', 'D03', 'D04', 'D05', 'D07', 'D09']
+        E
+        E         At index 2 diff: 'D04' != 'D03'
+        E         Right contains one more item: 'D09'
+        E
+        E         Full diff:
+        E           [
+        E               'D01',
+        E               'D02',
+        E         -     'D03',
+        E               'D04',
+        E               'D05',
+        E               'D07',
+        E               'D09',
+        E           ]
+
+        tests/test_decline_codes.py:41: AssertionError
+        =========================== short test summary info ============================
+        FAILED tests/test_decline_codes.py::TestDeclineReasons::test_codes_are_stable_for_api_v2 - AssertionError: assert ['D01', 'D02', 'D04', 'D05', 'D07', 'D09'] == ['D01', 'D02', 'D03', 'D04', 'D05', 'D07', 'D09']
+        ============= 1 failed, 286 passed, 4 skipped in 17.21s ==============
+  history:
+    "decision-api::test_codes_are_stable_for_api_v2": {runs: 85, fails: 0, flips: 0}
+  install_failures_last_2h: 12
+  confirming_rerun: null
+  expect:
+    kind: regression
+    next_step: rerun_to_confirm
+  why: the PR edits decline_codes.py and a never-failing test in the same module now misses D03; the install outage elsewhere is irrelevant to a test-step failure
+
+- id: kyc-mapping-unittest-confirmed
+  pr:
+    modules: [schemas]
+    files: [libs/schemas/src/schemas/kyc/person.py, libs/schemas/tests/test_person.py]
+  failed_jobs:
+    - module: connectors-kyc
+      step: test
+      log: |
+        Run python -m unittest discover -s tests -t . -v
+        test_address_lines_are_trimmed (tests.test_mapping.PersonMappingTest.test_address_lines_are_trimmed) ... ok
+        test_maps_date_of_birth (tests.test_mapping.PersonMappingTest.test_maps_date_of_birth) ... ERROR
+        test_maps_nationality_list (tests.test_mapping.PersonMappingTest.test_maps_nationality_list) ... ok
+        test_missing_document_is_flagged (tests.test_mapping.PersonMappingTest.test_missing_document_is_flagged) ... ok
+        test_sanctions_hit_is_escalated (tests.test_screening.ScreeningTest.test_sanctions_hit_is_escalated) ... ok
+        test_vendor_timeout_is_retried (tests.test_vendor.VendorClientTest.test_vendor_timeout_is_retried) ... skipped 'needs IDCHECK_SANDBOX'
+        test_webhook_signature_checked (tests.test_vendor.VendorClientTest.test_webhook_signature_checked) ... ok
+
+        ======================================================================
+        ERROR: test_maps_date_of_birth (tests.test_mapping.PersonMappingTest.test_maps_date_of_birth)
+        ----------------------------------------------------------------------
+        Traceback (most recent call last):
+          File "/home/runner/work/monorepo/monorepo/services/connectors-kyc/tests/test_mapping.py", line 58, in test_maps_date_of_birth
+            person = to_schema(self.vendor_payload)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+          File "/home/runner/work/monorepo/monorepo/services/connectors-kyc/src/connectors_kyc/mapping.py", line 112, in to_schema
+            return Person(
+                   ^^^^^^^
+          File "/home/runner/work/monorepo/monorepo/.venv/lib/python3.12/site-packages/pydantic/main.py", line 212, in __init__
+            validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        pydantic_core._pydantic_core.ValidationError: 1 validation error for Person
+        birth_date
+          Field required [type=missing, input_value={'given_name': 'Ada', 'fa...: '1990-02-14', ...}, input_type=dict]
+            For further information visit https://errors.pydantic.dev/2.9/v/missing
+
+        ----------------------------------------------------------------------
+        Ran 47 tests in 2.318s
+
+        FAILED (errors=1, skipped=2)
+        ##[error]Process completed with exit code 1.
+  history:
+    "connectors-kyc::test_maps_date_of_birth": {runs: 140, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: failed
+  expect:
+    kind: regression
+    next_step: tell_author
+  why: the schemas change made birth_date required under a new name, connectors-kyc depends on schemas, and the confirming rerun failed again
+
+- id: audit-field-rename-reaches-decision-api
+  pr:
+    modules: [audit-log]
+    files: [services/audit-log/src/audit_log/models.py, services/audit-log/tests/test_models.py]
+  failed_jobs:
+    - module: decision-api
+      step: test
+      log: |
+        [gw0] [ 71%] PASSED tests/test_decisions_route.py::test_post_decision_returns_201
+        [gw1] [ 71%] FAILED tests/test_audit_trail.py::test_decision_records_actor_id
+        [gw1] [ 72%] FAILED tests/test_audit_trail.py::test_manual_override_is_audited
+        [gw0] [ 72%] PASSED tests/test_decisions_route.py::test_idempotency_key_replays
+        ...
+        =================================== FAILURES ===================================
+        ________________________ test_decision_records_actor_id ________________________
+        [gw1] linux -- Python 3.12.7 /home/runner/work/monorepo/monorepo/.venv/bin/python
+
+        client = <starlette.testclient.TestClient object at 0x7f6e1b2a4d90>, operator_token = 'test-operator'
+
+            def test_decision_records_actor_id(client, operator_token):
+                resp = client.post("/v1/decisions", json=APPLICATION, headers=bearer(operator_token))
+        >       assert resp.status_code == 201, resp.text
+        E       AssertionError: {"detail":"internal error","trace_id":"4c1f0e9a"}
+        E       assert 500 == 201
+
+        tests/test_audit_trail.py:19: AssertionError
+        ------------------------------ Captured log call -------------------------------
+        ERROR    decision_api.app:app.py:88 unhandled error
+        Traceback (most recent call last):
+          File "/home/runner/work/monorepo/monorepo/services/decision-api/src/decision_api/service.py", line 141, in decide
+            consent = self._banking.consent_for(application.applicant_id, actor=ctx.actor)
+          File "/home/runner/work/monorepo/monorepo/services/connectors-banking/src/connectors_banking/consent.py", line 66, in consent_for
+            principal = auth.actor.resolve(actor)
+          File "/home/runner/work/monorepo/monorepo/services/auth/src/auth/actor.py", line 39, in resolve
+            return Principal(id=event.actor_id, scopes=event.scopes)
+                                ^^^^^^^^^^^^^^
+        AttributeError: 'AuditEvent' object has no attribute 'actor_id'
+        _______________________ test_manual_override_is_audited ________________________
+        [gw1] linux -- Python 3.12.7 /home/runner/work/monorepo/monorepo/.venv/bin/python
+        E       AssertionError: {"detail":"internal error","trace_id":"9b02d7c3"}
+        E       assert 500 == 200
+        =========================== short test summary info ============================
+        FAILED tests/test_audit_trail.py::test_decision_records_actor_id - AssertionError: {"detail":"internal error","trace_id":"4c1f0e9a"}
+        FAILED tests/test_audit_trail.py::test_manual_override_is_audited - AssertionError: {"detail":"internal error","trace_id":"9b02d7c3"}
+        ============= 2 failed, 284 passed, 4 skipped in 21.88s ==============
+  history:
+    "decision-api::test_decision_records_actor_id": {runs: 93, fails: 0, flips: 0}
+    "decision-api::test_manual_override_is_audited": {runs: 93, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: regression
+    next_step: rerun_to_confirm
+  why: audit-log reaches decision-api through auth and connectors-banking, and the traceback ends in the renamed AuditEvent field
+
+- id: session-cache-deadlock-looks-like-timeout
+  pr:
+    modules: [auth]
+    files: [services/auth/src/auth/session_cache.py]
+  failed_jobs:
+    - module: flow-editor-api
+      step: test
+      log: |
+        tests/test_publish.py::test_publish_requires_editor_scope PASSED         [ 63%]
+        tests/test_publish.py::test_concurrent_publish_reuses_session
+        +++++++++++++++++++++++++++++++++++ Timeout ++++++++++++++++++++++++++++++++++++
+        ~~~~~~~~~~~~~~~~~~~~~~~ Stack of Thread-3 (140213884372672) ~~~~~~~~~~~~~~~~~~~~~~~~
+          File "/opt/hostedtoolcache/Python/3.12.7/x64/lib/python3.12/threading.py", line 1032, in _bootstrap
+            self._bootstrap_inner()
+          File "/opt/hostedtoolcache/Python/3.12.7/x64/lib/python3.12/threading.py", line 1075, in _bootstrap_inner
+            self.run()
+          File "/home/runner/work/monorepo/monorepo/services/flow-editor-api/src/flow_editor_api/publish.py", line 88, in _publish_one
+            session = self._sessions.get_or_refresh(user_id)
+          File "/home/runner/work/monorepo/monorepo/services/auth/src/auth/session_cache.py", line 74, in get_or_refresh
+            with self._lock:
+        ~~~~~~~~~~~~~~~~~~~~~~~ Stack of MainThread (140213901985664) ~~~~~~~~~~~~~~~~~~~~~~~
+          File "/home/runner/work/monorepo/monorepo/services/flow-editor-api/tests/test_publish.py", line 141, in test_concurrent_publish_reuses_session
+            results = [f.result() for f in futures]
+          File "/home/runner/work/monorepo/monorepo/services/auth/src/auth/session_cache.py", line 91, in _refresh
+            with self._lock:
+        +++++++++++++++++++++++++++++++++++ Timeout ++++++++++++++++++++++++++++++++++++
+        FAILED                                                                   [ 64%]
+        tests/test_publish.py::test_publish_writes_version PASSED                [ 64%]
+        ...
+        =========================== short test summary info ============================
+        FAILED tests/test_publish.py::test_concurrent_publish_reuses_session - Failed: Timeout >30.0s
+        ============== 1 failed, 202 passed, 1 skipped in 58.30s ===============
+  history:
+    "flow-editor-api::test_concurrent_publish_reuses_session": {runs: 140, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: regression
+    next_step: rerun_to_confirm
+  why: the timeout is a deadlock - both stacks wait on the lock in the changed session_cache.py, flow-editor-api depends on auth, and the test never failed before
+
+- id: risk-models-numpy-pin-conflict
+  pr:
+    modules: [risk-models]
+    files: [services/risk-models/pyproject.toml, services/risk-models/src/risk_models/training/fit.py]
+  failed_jobs:
+    - module: risk-models
+      step: install
+      log: |
+        Run uv sync --package risk-models --extra test
+        Using CPython 3.12.7 interpreter at: /opt/hostedtoolcache/Python/3.12.7/x64/bin/python3
+        Creating virtual environment at: .venv
+          × No solution found when resolving dependencies for split (python_full_version >= '3.12'):
+          ╰─▶ Because scikit-learn==1.5.2 depends on numpy>=1.19.5,<2.3 and risk-models depends on numpy>=2.3.0, we can conclude that risk-models and scikit-learn==1.5.2 are incompatible.
+              And because risk-models depends on scikit-learn==1.5.2 and your workspace requires risk-models, we can conclude that your workspace's requirements are unsatisfiable.
+
+              hint: Pre-releases are available for `numpy` in the requested range (e.g., 2.4.0rc1), but pre-releases weren't enabled (try: `--prerelease=allow`)
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 1
+  confirming_rerun: null
+  expect:
+    kind: regression
+    next_step: rerun_to_confirm
+  why: the PR's own pyproject now asks for numpy>=2.3 against a pinned scikit-learn; the resolver says so and only this pull request failed at install
+
+- id: sdk-js-zod-pin-confirmed
+  pr:
+    modules: [sdk-js]
+    files: [frontend/sdk-js/package.json, frontend/sdk-js/src/validate.ts]
+  failed_jobs:
+    - module: sdk-js
+      step: install
+      log: |
+        Run npm install --no-audit --no-fund
+        npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it.
+        npm warn deprecated glob@7.2.3: Glob versions prior to v9 are no longer supported
+        npm error code ETARGET
+        npm error notarget No matching version found for zod@3.29.9.
+        npm error notarget In most cases you or one of your dependencies are requesting
+        npm error notarget a package version that doesn't exist.
+        npm error A complete log of this run can be found in: /home/runner/.npm/_logs/2026-10-29T13_47_05_602Z-debug-0.log
+        ##[error]Process completed with exit code 1.
+  install_failures_last_2h: 1
+  confirming_rerun: failed
+  expect:
+    kind: regression
+    next_step: tell_author
+  why: the PR's package.json pins a zod version that does not exist, no other pull request failed at install, and the confirming rerun failed the same way
+
+- id: feature-store-flaky-beside-regression
+  pr:
+    modules: [billing]
+    files: [services/billing/src/billing/proration.py, services/billing/tests/test_proration.py]
+  failed_jobs:
+    - module: feature-store
+      step: test
+      log: |
+        ============================= test session starts ==============================
+        platform linux -- Python 3.12.7, pytest-8.3.3, pluggy-1.5.0
+        rootdir: /home/runner/work/monorepo/monorepo/services/feature-store
+        configfile: pyproject.toml
+        plugins: xdist-3.6.1, cov-5.0.0, timeout-2.3.1
+        created: 4/4 workers
+        4 workers [356 items]
+
+        ....................F.................................................. [ 20%]
+        ............................................F........................... [ 40%]
+        ........................................................................ [ 60%]
+        ........................................................................ [ 80%]
+        ...................................................................      [100%]
+        =================================== FAILURES ===================================
+        _____________________ test_backfill_window_is_idempotent ______________________
+        [gw2] linux -- Python 3.12.7 /home/runner/work/monorepo/monorepo/.venv/bin/python
+
+            def test_backfill_window_is_idempotent(offline_store):
+                backfill(offline_store, start=D("2026-09-01"), end=D("2026-09-30"))
+                first = offline_store.snapshot()
+                backfill(offline_store, start=D("2026-09-01"), end=D("2026-09-30"))
+        >       assert offline_store.snapshot() == first
+        E       AssertionError: assert Snapshot(rows=30211, checksum='9c41e0') == Snapshot(rows=30210, checksum='77ab3f')
+
+        tests/test_backfill.py:52: AssertionError
+        ___________ test_monthly_spend_feature_prorates_partial_month ____________
+        [gw0] linux -- Python 3.12.7 /home/runner/work/monorepo/monorepo/.venv/bin/python
+
+            def test_monthly_spend_feature_prorates_partial_month():
+                sub = Subscription(plan="pro", monthly=Decimal("90.00"), started=D("2026-09-21"))
+        >       assert monthly_spend(sub, month="2026-09") == Decimal("30.00")
+        E       AssertionError: assert Decimal('27.00') == Decimal('30.00')
+        E        +  where Decimal('27.00') = monthly_spend(Subscription(plan='pro', monthly=Decimal('90.00'), started=datetime.date(2026, 9, 21)), month='2026-09')
+
+        tests/test_spend_features.py:33: AssertionError
+        =========================== short test summary info ============================
+        FAILED tests/test_backfill.py::test_backfill_window_is_idempotent - AssertionError: assert Snapshot(rows=30211, checksum='9c41e0') == Snapshot(rows=30210, checksum='77ab3f')
+        FAILED tests/test_spend_features.py::test_monthly_spend_feature_prorates_partial_month - AssertionError: assert Decimal('27.00') == Decimal('30.00')
+        ============== 2 failed, 354 passed in 46.12s ===============
+  history:
+    "feature-store::test_backfill_window_is_idempotent": {runs: 175, fails: 12, flips: 11}
+    "feature-store::test_monthly_spend_feature_prorates_partial_month": {runs: 175, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: regression
+    next_step: rerun_to_confirm
+  why: the backfill failure is a known flipper, but the proration test never failed before and checks exactly what proration.py computes; feature-store depends on billing
+
+- id: digest-failed-once-never-flipped
+  pr:
+    modules: [core]
+    files: [libs/core/src/core/tenancy.py, libs/core/tests/test_tenancy.py]
+  failed_jobs:
+    - module: notifications
+      step: test
+      log: |
+        tests/test_digest.py::test_digest_groups_by_tenant FAILED                [ 18%]
+        tests/test_digest.py::test_digest_skips_muted_users PASSED               [ 19%]
+        tests/test_digest.py::test_digest_subject_is_localised[de] PASSED        [ 19%]
+        tests/test_digest.py::test_digest_subject_is_localised[en] PASSED        [ 20%]
+        ...
+        =================================== FAILURES ===================================
+        _________________________ test_digest_groups_by_tenant _________________________
+
+        events = [Event(tenant='t-acme-eu', kind='flow.published'), Event(tenant='T-ACME-EU', kind='flow.published'), ...]
+
+            def test_digest_groups_by_tenant(events):
+                groups = digest.group(events)
+        >       assert sorted(groups) == ["t-acme-eu", "t-orbit"]
+        E       AssertionError: assert ['T-ACME-EU', 't-acme-eu', 't-orbit'] == ['t-acme-eu', 't-orbit']
+        E
+        E         At index 0 diff: 'T-ACME-EU' != 't-acme-eu'
+        E         Left contains one more item: 't-orbit'
+
+        tests/test_digest.py:27: AssertionError
+        ---------- coverage: platform linux, python 3.12.7-final-0 -----------
+        TOTAL                                   1418     96    93%
+
+        =========================== short test summary info ============================
+        FAILED tests/test_digest.py::test_digest_groups_by_tenant - AssertionError: assert ['T-ACME-EU', 't-acme-eu', 't-orbit'] == ['t-acme-eu', 't-orbit']
+        ============== 1 failed, 173 passed in 11.94s ===============
+  history:
+    "notifications::test_digest_groups_by_tenant": {runs: 210, fails: 1, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: regression
+    next_step: rerun_to_confirm
+  why: one earlier failure that did not pass on retry is not flakiness; the tenancy change in core reaches notifications and tenant ids stopped being normalised
+
+- id: web-app-snapshot-truncated-log
+  pr:
+    modules: [sdk-js]
+    files: [frontend/sdk-js/src/client/decisions.ts, frontend/sdk-js/src/types/decision.ts]
+  failed_jobs:
+    - module: web-app
+      step: test
+      log: |
+        ed 214 modules in 4.21s
+         ✓ src/routes/Login.test.tsx (6 tests) 311ms
+         ✓ src/routes/FlowList.test.tsx (11 tests) 702ms
+         ❯ src/routes/DecisionDetail.test.tsx (8 tests | 2 failed) 980ms
+           × DecisionDetail > renders the decision summary 112ms
+             → Snapshot `DecisionDetail > renders the decision summary 1` mismatched
+           × DecisionDetail > shows the decline badge for rejected decisions 47ms
+             → Unable to find an element with the text: Declined
+         ✓ src/components/StatusBadge.test.tsx (5 tests) 40ms
+
+        ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯ Failed Tests 2 ⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+         FAIL  src/routes/DecisionDetail.test.tsx > DecisionDetail > renders the decision summary
+        Error: Snapshot `DecisionDetail > renders the decision summary 1` mismatched
+
+        - Expected
+        + Received
+
+          <dl class="summary">
+            <dt>Outcome</dt>
+        -   <dd>Approved</dd>
+        +   <dd>APPROVED</dd>
+            <dt>Score</dt>
+            <dd>712</dd>
+          </dl>
+
+         ❯ src/routes/DecisionDetail.test.tsx:22:31
+
+         FAIL  src/routes/DecisionDetail.test.tsx > DecisionDetail > shows the decline badge for rejected decisions
+        TestingLibraryElementError: Unable to find an element with the text: Declined. This could be because the text is broken up by multiple elements.
+         ❯ src/routes/DecisionDetail.test.tsx:37:19
+
+         Snapshots  1 failed
+         Test Files  1 failed | 41 passed (42)
+              Tests  2 failed | 377 passed (379)
+           Start at  14:20:09
+           Duration  19.84s (transform 2.40s, setup 4.11s, collect 8.73s, tests 9.02s, environment 11.65s, prepare 3.38s)
+
+         ELIFECYCLE  Test failed. See more logs for details.
+        ##[error]Process completed with exit code 1.
+  history:
+    "web-app::renders_the_decision_summary": {runs: 66, fails: 0, flips: 0}
+    "web-app::shows_the_decline_badge_for_rejected_decisions": {runs: 66, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: null
+  expect:
+    kind: regression
+    next_step: rerun_to_confirm
+  why: web-app depends on sdk-js and both decision-detail tests fail on the outcome casing the SDK change returns; the cut-off start of the log hides nothing that matters
+
+- id: dialog-escape-confirmed-in-admin-console
+  pr:
+    modules: [ui-kit]
+    files: [frontend/ui-kit/src/components/Dialog/Dialog.tsx, frontend/ui-kit/src/components/Dialog/useDismiss.ts]
+  failed_jobs:
+    - module: admin-console
+      step: test
+      log: |
+        Running 146 tests using 2 workers
+
+          ✓   1 [chromium] › src/users/UserTable.test.tsx:14:5 › user table › sorts by last login (1.1s)
+          ...
+          ✘  88 [chromium] › src/roles/DeleteRoleDialog.test.tsx:12:5 › delete role dialog › closes on Escape (5.2s)
+          ✘  89 [chromium] › src/users/RevokeDialog.test.tsx:18:5 › revoke dialog › closes on Escape (5.1s)
+          ✓  90 [chromium] › src/users/RevokeDialog.test.tsx:31:5 › revoke dialog › revokes on confirm (901ms)
+          ...
+
+          1) [chromium] › src/roles/DeleteRoleDialog.test.tsx:12:5 › delete role dialog › closes on Escape ─
+
+            Error: Timed out 5000ms waiting for expect(locator).toBeHidden()
+
+            Locator: getByRole('dialog', { name: 'Delete role' })
+            Expected: hidden
+            Received: visible
+            Call log:
+              - expect.toBeHidden with timeout 5000ms
+              - waiting for getByRole('dialog', { name: 'Delete role' })
+              9 × locator resolved to <div role="dialog" aria-modal="true" class="uk-dialog" aria-labelledby="uk-dialog-title-3">…</div>
+                - unexpected value "visible"
+
+              14 |     await component.getByRole('button', { name: 'Delete' }).click();
+              15 |     await component.page().keyboard.press('Escape');
+            > 16 |     await expect(component.getByRole('dialog', { name: 'Delete role' })).toBeHidden();
+                 |                                                                          ^
+
+          2) [chromium] › src/users/RevokeDialog.test.tsx:18:5 › revoke dialog › closes on Escape ─────────
+
+            Error: Timed out 5000ms waiting for expect(locator).toBeHidden()
+
+            Locator: getByRole('dialog', { name: 'Revoke access' })
+            Expected: hidden
+            Received: visible
+
+          2 failed
+            [chromium] › src/roles/DeleteRoleDialog.test.tsx:12:5 › delete role dialog › closes on Escape ─
+            [chromium] › src/users/RevokeDialog.test.tsx:18:5 › revoke dialog › closes on Escape ─────────
+          144 passed (2.3m)
+        ##[error]Process completed with exit code 1.
+  history:
+    "admin-console::closes_on_Escape": {runs: 150, fails: 0, flips: 0}
+  install_failures_last_2h: 0
+  confirming_rerun: failed
+  expect:
+    kind: regression
+    next_step: tell_author
+  why: the PR changes ui-kit's dismiss handling, two different dialogs stopped closing on Escape, and the confirming rerun failed again

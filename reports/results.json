@@ -371,5 +371,5 @@
       "bound": 25
     }
   ],
-  "heldout": "`ci-failures-1` (regression): 44 cases written blind. First run: kind right 50%, next step right 61%.\nStudied since, so now a regression set: kind right 100%, next step right 98% (not a measure of how the agent generalises).\n\n| Expected | Cases | Right on the first run |\n|---|---|---|\n| infra | 11 | 10 |\n| dependency | 10 | 1 |\n| flaky | 11 | 5 |\n| regression | 12 | 6 |"
+  "heldout": "`ci-failures-1` (regression): 44 cases written blind. First run: kind right 50%, next step right 61%.\nStudied since, so now a regression set: kind right 100%, next step right 98% (not a measure of how the agent generalises).\n\n| Expected | Cases | Right on the first run |\n|---|---|---|\n| infra | 11 | 10 |\n| dependency | 10 | 1 |\n| flaky | 11 | 5 |\n| regression | 12 | 6 |\n\n`ci-failures-2` (heldout): 40 cases written blind. First run: kind right 92%, next step right 92%.\n\n| Expected | Cases | Right on the first run |\n|---|---|---|\n| infra | 10 | 10 |\n| dependency | 10 | 10 |\n| flaky | 10 | 9 |\n| regression | 10 | 8 |"
 }

@@ -1,0 +1,614 @@
+{
+  "set": "ci-failures-2",
+  "status": "heldout",
+  "cases": 40,
+  "kind_accuracy": 0.925,
+  "next_step_accuracy": 0.925,
+  "by_kind": {
+    "infra": {
+      "cases": 10,
+      "right": 10
+    },
+    "dependency": {
+      "cases": 10,
+      "right": 10
+    },
+    "flaky": {
+      "cases": 10,
+      "right": 9
+    },
+    "regression": {
+      "cases": 10,
+      "right": 8
+    }
+  },
+  "confusion": {
+    "infra": {
+      "infra": 10
+    },
+    "dependency": {
+      "dependency": 10
+    },
+    "flaky": {
+      "flaky": 9,
+      "infra": 1
+    },
+    "regression": {
+      "regression": 8,
+      "infra": 2
+    }
+  },
+  "authors_sent_chasing_noise": 0,
+  "results": [
+    {
+      "id": "xdist-workers-killed-in-auth",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "two xdist workers died and pytest itself was SIGKILLed (exit 137) with no assertion anywhere; the machine ran out of memory"
+    },
+    {
+      "id": "disk-full-during-pip-install",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.7,
+      "evidence": [
+        "runner failure in the log: 'No space left on device'",
+        "1 pull request(s) failed at install in 2 h, and this change touches no manifest"
+      ],
+      "why": "pip failed with ENOSPC while writing an already-downloaded wheel and the runner warned about disk; nothing resolved wrong and no manifest changed"
+    },
+    {
+      "id": "checkout-cannot-resolve-github",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.55,
+      "evidence": [
+        "install failed for this pull request only",
+        "1 pull request(s) failed at install in 2 h, and this change touches no manifest"
+      ],
+      "why": "the checkout itself failed on DNS/connect to github.com in two jobs; no package was ever installed"
+    },
+    {
+      "id": "runner-shutdown-mid-risk-models",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'runner has received a shutdown signal'"
+      ],
+      "why": "the runner got a shutdown signal while a reachable test was still running; that test never reported a result"
+    },
+    {
+      "id": "self-hosted-runner-lost-mid-vitest",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'lost communication with the server'"
+      ],
+      "why": "the runner lost contact with GitHub mid-run; no test had failed when the log stops"
+    },
+    {
+      "id": "postgres-service-container-pull",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the job never started tests; the runner could not pull the postgres service image (connection timeouts and DNS i/o timeout)"
+    },
+    {
+      "id": "artifact-download-retries-exhausted",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "downloading the sdk-js build artifact timed out and reset five times; no test ran"
+    },
+    {
+      "id": "spot-runner-reclaimed-during-jest",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'runner has received a shutdown signal'"
+      ],
+      "why": "the spot instance was reclaimed (SIGTERM, exit 143) while two suites were still RUNS; nothing failed"
+    },
+    {
+      "id": "lfs-fetch-connection-reset",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.55,
+      "evidence": [
+        "install failed for this pull request only",
+        "1 pull request(s) failed at install in 2 h, and this change touches no manifest"
+      ],
+      "why": "checkout's LFS batch request was reset by the network twice; a git transport failure, not a package install"
+    },
+    {
+      "id": "enospc-writing-playwright-traces",
+      "expected": "infra",
+      "got": "infra",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.9,
+      "evidence": [
+        "runner failure in the log: 'No space left on device'"
+      ],
+      "why": "the changed module's test is marked failed only because Playwright could not write its trace (ENOSPC) and the runner's own log ran out of disk"
+    },
+    {
+      "id": "uv-wheel-download-503",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "14 pull requests failed at install in 2 h"
+      ],
+      "why": "the package host returned 503 for a locked wheel and 14 pull requests failed at install in the last two hours"
+    },
+    {
+      "id": "npm-e503-rollup-native",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "9 pull requests failed at install in 2 h"
+      ],
+      "why": "the npm registry answered 503 for a tarball in an unchanged lock file, and nine pull requests failed at install recently"
+    },
+    {
+      "id": "pnpm-502-despite-lockfile-change",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "11 pull requests failed at install in 2 h"
+      ],
+      "why": "the PR touches the lock file but the lock was accepted; the failure is a registry 502 on an unrelated ui-kit dependency hitting 11 pull requests"
+    },
+    {
+      "id": "pip-read-timeouts-then-no-versions",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "install failed: 'Could not find a version that satisfies'",
+        "7 pull requests failed at install in 2 h"
+      ],
+      "why": "\"from versions: none\" follows five read timeouts against the index; requirements are unchanged and seven pull requests failed at install"
+    },
+    {
+      "id": "yarn-classic-500-docs-site",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "4 pull requests failed at install in 2 h"
+      ],
+      "why": "the registry returned 500 for a locked tarball on a docs-only change; four pull requests failed at install"
+    },
+    {
+      "id": "setuptools-release-breaks-sdist-build",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "19 pull requests failed at install in 2 h"
+      ],
+      "why": "an unchanged sdist stopped building because build isolation pulled a new setuptools; 19 pull requests failed at install, so it is upstream"
+    },
+    {
+      "id": "pnpm-tarball-integrity-mismatch",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "12 pull requests failed at install in 2 h"
+      ],
+      "why": "the registry served a tarball whose checksum no longer matches the unchanged lock file; 12 pull requests failed at install"
+    },
+    {
+      "id": "internal-mirror-missing-release",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "install failed: 'Could not find a version that satisfies'",
+        "8 pull requests failed at install in 2 h"
+      ],
+      "why": "the pin is unchanged and the internal mirror suddenly lists fewer releases; eight pull requests failed at install"
+    },
+    {
+      "id": "poetry-no-installation-candidates",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "10 pull requests failed at install in 2 h"
+      ],
+      "why": "the lock file is unchanged and the index returned no files for a locked release; ten pull requests failed at install"
+    },
+    {
+      "id": "uv-reset-despite-pyproject-change",
+      "expected": "dependency",
+      "got": "dependency",
+      "kind_ok": true,
+      "expected_next": "wait_and_rerun",
+      "got_next": "wait_and_rerun",
+      "next_ok": true,
+      "confidence": 0.95,
+      "evidence": [
+        "9 pull requests failed at install in 2 h"
+      ],
+      "why": "the PR edits pyproject and uv.lock, but the failure is connection resets fetching an old locked wheel, and nine pull requests failed at install"
+    },
+    {
+      "id": "reporting-not-reached-by-billing",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`reporting::test_monthly_rollup_crosses_dst_boundary` is in `reporting`, which this change cannot reach"
+      ],
+      "why": "reporting depends only on core, so a billing change cannot reach it; the test is timing-dependent (closed three seconds after midnight)"
+    },
+    {
+      "id": "audit-log-not-reached-by-auth",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`audit-log::test_actor_events_are_ordered_under_concurrency` is in `audit-log`, which this change cannot reach"
+      ],
+      "why": "auth depends on audit-log, not the other way round, so the auth change cannot reach this concurrency test despite the name"
+    },
+    {
+      "id": "data-sync-flippy-history-decides",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`data-sync::test_incremental_sync_resumes_after_cursor_reset` flipped 13 times in 160 runs"
+      ],
+      "why": "the change does reach data-sync, but this test failed 14 of 160 runs and 13 of those passed on retry of the same commit"
+    },
+    {
+      "id": "bureau-timeout-rerun-passed",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "propose_quarantine",
+      "got_next": "propose_quarantine",
+      "next_ok": true,
+      "confidence": 0.8,
+      "evidence": [
+        "`connectors-bureau::test_report_fetch_retries_on_429` is in `connectors-bureau`, which this change reaches",
+        "passed when rerun on the same commit"
+      ],
+      "why": "reachable and no history, but the confirming rerun of the same commit passed, so the read timeout against the stub is not the change"
+    },
+    {
+      "id": "autosave-debounce-rerun-passed",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "propose_quarantine",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.85,
+      "evidence": [
+        "`flow-editor::autosaves_after_debounce` flipped 9 times in 301 runs"
+      ],
+      "why": "the test lives in the changed module but flipped on all 9 of its past failures and the confirming rerun passed"
+    },
+    {
+      "id": "quarantined-bulk-invite-toast",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`admin-console::bulk_invite_shows_progress_toast` flipped 21 times in 212 runs"
+      ],
+      "why": "the only failure is an already-quarantined test that flipped 21 of 23 times; the Table change reaches admin-console but nothing else failed"
+    },
+    {
+      "id": "report-viewer-not-reached-by-reporting",
+      "expected": "flaky",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "analytics-ui depends only on ui-kit; a change to the Python reporting service cannot reach a component test that mounts fixture data"
+    },
+    {
+      "id": "docs-site-not-reached-by-sdk-js",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`docs-site::remembers_the_selected_language_across_tabs` is in `docs-site`, which this change cannot reach"
+      ],
+      "why": "docs-site depends only on ui-kit, not on sdk-js, so the SDK change cannot have broken this code-tab test"
+    },
+    {
+      "id": "smtp-port-in-use-setup-error",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`notifications::test_sends_digest_email` flipped 7 times in 121 runs"
+      ],
+      "why": "a fixed-port fixture collided between xdist workers; the test errors at setup and has flipped 7 of 8 past failures"
+    },
+    {
+      "id": "scorecard-band-not-reached-by-bureau",
+      "expected": "flaky",
+      "got": "flaky",
+      "kind_ok": true,
+      "expected_next": "rerun_failed_jobs",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": true,
+      "confidence": 0.85,
+      "evidence": [
+        "`risk-models::test_band_boundaries` is in `risk-models`, which this change cannot reach"
+      ],
+      "why": "connectors-bureau has no dependents, so risk-models cannot be reached; the fit depends on a random seed"
+    },
+    {
+      "id": "decline-codes-changed-in-decision-api",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`decision-api::test_codes_are_stable_for_api_v2` is in `decision-api`, which this change reaches"
+      ],
+      "why": "the PR edits decline_codes.py and a never-failing test in the same module now misses D03; the install outage elsewhere is irrelevant to a test-step failure"
+    },
+    {
+      "id": "kyc-mapping-unittest-confirmed",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "tell_author",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the schemas change made birth_date required under a new name, connectors-kyc depends on schemas, and the confirming rerun failed again"
+    },
+    {
+      "id": "audit-field-rename-reaches-decision-api",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`decision-api::test_decision_records_actor_id` is in `decision-api`, which this change reaches",
+        "`decision-api::test_manual_override_is_audited` is in `decision-api`, which this change reaches"
+      ],
+      "why": "audit-log reaches decision-api through auth and connectors-banking, and the traceback ends in the renamed AuditEvent field"
+    },
+    {
+      "id": "session-cache-deadlock-looks-like-timeout",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`flow-editor-api::test_concurrent_publish_reuses_session` is in `flow-editor-api`, which this change reaches"
+      ],
+      "why": "the timeout is a deadlock - both stacks wait on the lock in the changed session_cache.py, flow-editor-api depends on auth, and the test never failed before"
+    },
+    {
+      "id": "risk-models-numpy-pin-conflict",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "only 1 pull request(s) failed at install, and this one changes `services/risk-models/pyproject.toml`"
+      ],
+      "why": "the PR's own pyproject now asks for numpy>=2.3 against a pinned scikit-learn; the resolver says so and only this pull request failed at install"
+    },
+    {
+      "id": "sdk-js-zod-pin-confirmed",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "tell_author",
+      "got_next": "tell_author",
+      "next_ok": true,
+      "confidence": 0.92,
+      "evidence": [
+        "only 1 pull request(s) failed at install, and this one changes `frontend/sdk-js/package.json`",
+        "failed again on rerun"
+      ],
+      "why": "the PR's package.json pins a zod version that does not exist, no other pull request failed at install, and the confirming rerun failed the same way"
+    },
+    {
+      "id": "feature-store-flaky-beside-regression",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`feature-store::test_monthly_spend_feature_prorates_partial_month` is in `feature-store`, which this change reaches"
+      ],
+      "why": "the backfill failure is a known flipper, but the proration test never failed before and checks exactly what proration.py computes; feature-store depends on billing"
+    },
+    {
+      "id": "digest-failed-once-never-flipped",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`notifications::test_digest_groups_by_tenant` is in `notifications`, which this change reaches"
+      ],
+      "why": "one earlier failure that did not pass on retry is not flakiness; the tenancy change in core reaches notifications and tenant ids stopped being normalised"
+    },
+    {
+      "id": "web-app-snapshot-truncated-log",
+      "expected": "regression",
+      "got": "regression",
+      "kind_ok": true,
+      "expected_next": "rerun_to_confirm",
+      "got_next": "rerun_to_confirm",
+      "next_ok": true,
+      "confidence": 0.6,
+      "evidence": [
+        "`web-app::renders_the_decision_summary` is in `web-app`, which this change reaches",
+        "`web-app::shows_the_decline_badge_for_rejected_decisions` is in `web-app`, which this change reaches"
+      ],
+      "why": "web-app depends on sdk-js and both decision-detail tests fail on the outcome casing the SDK change returns; the cut-off start of the log hides nothing that matters"
+    },
+    {
+      "id": "dialog-escape-confirmed-in-admin-console",
+      "expected": "regression",
+      "got": "infra",
+      "kind_ok": false,
+      "expected_next": "tell_author",
+      "got_next": "rerun_failed_jobs",
+      "next_ok": false,
+      "confidence": 0.4,
+      "evidence": [
+        "the job failed without a failed test or a known marker"
+      ],
+      "why": "the PR changes ui-kit's dismiss handling, two different dialogs stopped closing on Escape, and the confirming rerun failed again"
+    }
+  ],
+  "first_run": true
+}
