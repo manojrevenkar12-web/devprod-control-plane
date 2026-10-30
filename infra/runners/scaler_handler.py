@@ -41,11 +41,13 @@ def handler(event: dict, context: object) -> dict:
     for asg_name, labels in POOLS.items():
         g = ASG.describe_auto_scaling_groups(AutoScalingGroupNames=[asg_name])["AutoScalingGroups"][0]
         tags = {i["InstanceId"]: i for i in g["Instances"]}
-        busy = sum(1 for i in tags.values() if i.get("LifecycleState") == "InService" and i.get("ProtectedFromScaleIn"))
-        idle = sum(1 for i in tags.values() if i.get("LifecycleState") == "InService" and not i.get("ProtectedFromScaleIn"))
+        up = [i for i in tags.values() if i.get("LifecycleState") == "InService"]
+        busy = sum(1 for i in up if i.get("ProtectedFromScaleIn"))  # a job is running (job-started hook)
+        idle = len(up) - busy
         booting = sum(1 for i in tags.values() if i.get("LifecycleState", "").startswith("Pending"))
-        d = decide(Pool(tuple(labels), queued.get(tuple(sorted(labels)), 0), busy, idle, booting), CFG,
-                   working_hours(now))
+        d = decide(
+            Pool(tuple(labels), queued.get(tuple(sorted(labels)), 0), busy, idle, booting), CFG, working_hours(now)
+        )
         if d["desired"] != g["DesiredCapacity"]:
             ASG.set_desired_capacity(AutoScalingGroupName=asg_name, DesiredCapacity=d["desired"], HonorCooldown=False)
         out.append({"asg": asg_name, **d})

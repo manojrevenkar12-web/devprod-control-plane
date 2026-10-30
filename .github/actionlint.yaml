@@ -1,0 +1,2 @@
+self-hosted-runner:
+  labels: [arm64, ci-python, ci-typescript, small, medium]

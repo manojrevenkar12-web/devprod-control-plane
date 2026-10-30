@@ -258,15 +258,15 @@ resource "aws_cloudwatch_log_group" "scaler" {
 }
 
 resource "aws_lambda_function" "scaler" {
-  function_name    = "${var.name}-scaler"
-  role             = aws_iam_role.scaler.arn
-  runtime          = "python3.13"
-  architectures    = ["arm64"]
-  handler          = "scaler_handler.handler"
-  filename         = data.archive_file.scaler.output_path
-  source_code_hash = data.archive_file.scaler.output_base64sha256
-  timeout          = 30
-  memory_size      = 256
+  function_name                  = "${var.name}-scaler"
+  role                           = aws_iam_role.scaler.arn
+  runtime                        = "python3.13"
+  architectures                  = ["arm64"]
+  handler                        = "scaler_handler.handler"
+  filename                       = data.archive_file.scaler.output_path
+  source_code_hash               = data.archive_file.scaler.output_base64sha256
+  timeout                        = 30
+  memory_size                    = 256
   reserved_concurrent_executions = 1 # one decision at a time
   environment {
     variables = {

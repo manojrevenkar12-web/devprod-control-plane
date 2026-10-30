@@ -1,0 +1,71 @@
+name: ci
+on:
+  push: {branches: [main]}
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.head_ref || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    name: lint and fast tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with: {enable-cache: true}
+      - run: scripts/ci-run.sh "uv sync" uv sync --frozen
+      - run: scripts/ci-run.sh "ruff" uv run ruff check src tests infra
+      - run: scripts/ci-run.sh "ruff format" uv run ruff format --check src tests
+      - run: scripts/ci-run.sh "cfn-lint" uv run cfn-lint infra/control-plane/template.yaml infra/accounts/deploy-role.yaml
+      - run: scripts/ci-run.sh "pytest" uv run pytest -q -m "not slow" --cov=devprod --cov-report=term
+
+  pipeline:
+    name: both worlds, the evaluation and the release gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with: {enable-cache: true}
+      - run: scripts/ci-run.sh "uv sync" uv sync --frozen
+      - run: scripts/ci-run.sh "slow tests" uv run pytest -q -m slow
+      - run: scripts/ci-run.sh "devprod run" uv run devprod run
+      - run: scripts/ci-run.sh "reports are generated" git diff --stat --exit-code -- reports/results.json reports/RESULTS.md
+      - run: scripts/ci-run.sh "workflows are generated" uv run devprod workflows --out generated --check
+      - run: scripts/ci-run.sh "held-out first runs unchanged" git diff --exit-code -- 'heldout/*/first_run.json'
+      - name: actionlint (this workflow and the generated ones)
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
+          scripts/ci-run.sh "actionlint" ./actionlint -config-file .github/actionlint.yaml -shellcheck= \
+            .github/workflows/*.yml generated/.github/workflows/*.yml
+
+  terraform:
+    name: runner fleet (terraform validate)
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: infra/runners}}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: hashicorp/setup-terraform@v3
+      - run: ../../scripts/ci-run.sh "terraform fmt" terraform fmt -check -diff
+      - run: ../../scripts/ci-run.sh "terraform init" terraform init -backend=false -input=false
+      - run: ../../scripts/ci-run.sh "terraform validate" terraform validate
+
+  web:
+    name: dashboard (unit and end-to-end)
+    runs-on: ubuntu-latest
+    defaults: {run: {working-directory: web}}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: {node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json}
+      - run: ../scripts/ci-run.sh "npm ci" npm ci
+      - run: ../scripts/ci-run.sh "tsc" npx tsc --noEmit -p .
+      - run: ../scripts/ci-run.sh "vitest" npm test
+      - run: ../scripts/ci-run.sh "build" npm run build
+      - run: ../scripts/ci-run.sh "playwright install" npx playwright install --with-deps chromium
+      - run: ../scripts/ci-run.sh "playwright" npx playwright test
