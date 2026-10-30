@@ -1,0 +1,77 @@
+/* Design tokens. Every colour, size and duration in the app comes from here. */
+:root {
+  color-scheme: light dark;
+  --paper: #f3f5f7;
+  --panel: #ffffff;
+  --ink: #14212b;
+  --muted: #566774;
+  --rule: #d5dce2;
+  --cp: #0c6b70;        /* the control plane */
+  --cp-soft: #d4ebea;
+  --base: #7b8692;      /* the baseline */
+  --base-soft: #e3e7eb;
+  --fail: #b23c0c;      /* a failure, a bad release */
+  --fail-soft: #f6dfd3;
+  --flaky: #8f5a00;
+  --flaky-soft: #f4e6c8;
+  --ok: #2b7149;
+  --ok-soft: #d8ecdf;
+  --unreached: #e3e7eb;
+  --focus: #1d4ed8;
+
+  --font: "Recursive Variable", system-ui, sans-serif;
+  --mono: "MONO" 1, "CASL" 0;
+  --sans: "MONO" 0, "CASL" 0;
+
+  --step--1: 0.8125rem;
+  --step-0: 0.9375rem;
+  --step-1: 1.125rem;
+  --step-2: 1.5rem;
+  --step-3: 2.25rem;
+  --step-4: 3.25rem;
+  --leading: 1.5;
+  --leading-tight: 1.15;
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+
+  --radius-s: 3px;
+  --radius-m: 6px;
+  --measure: 68ch;
+  --page: 1180px;
+  --cell: 4px;          /* one customer account in a rollout strip */
+  --cell-gap: 1px;
+
+  --dur-fast: 140ms;
+  --dur: 260ms;
+  --dur-slow: 900ms;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #0f171e;
+    --panel: #15212a;
+    --ink: #e3eaf0;
+    --muted: #93a3af;
+    --rule: #26343f;
+    --cp: #45b8b1;
+    --cp-soft: #133b3d;
+    --base: #8a96a2;
+    --base-soft: #24313b;
+    --fail: #f07a4a;
+    --fail-soft: #43251a;
+    --flaky: #e0a534;
+    --flaky-soft: #3b2e14;
+    --ok: #5cbc88;
+    --ok-soft: #173326;
+    --unreached: #24313b;
+    --focus: #8ab4ff;
+  }
+}

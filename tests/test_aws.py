@@ -246,8 +246,14 @@ def test_runner_scaler_lambda_sets_desired_capacity_from_queued_jobs(monkeypatch
     subnet = ec2.describe_subnets()["Subnets"][0]["SubnetId"]
     asg = boto3.client("autoscaling", region_name=REGION)
     asg.create_launch_configuration(LaunchConfigurationName="lc", ImageId=ami, InstanceType="t4g.small")
-    asg.create_auto_scaling_group(AutoScalingGroupName="devprod-runners-python-medium", LaunchConfigurationName="lc",
-                                  MinSize=0, MaxSize=64, DesiredCapacity=0, VPCZoneIdentifier=subnet)
+    asg.create_auto_scaling_group(
+        AutoScalingGroupName="devprod-runners-python-medium",
+        LaunchConfigurationName="lc",
+        MinSize=0,
+        MaxSize=64,
+        DesiredCapacity=0,
+        VPCZoneIdentifier=subnet,
+    )
     labels = ["self-hosted", "linux", "arm64", "ci-python", "medium"]
     monkeypatch.setenv("SCALER_CONFIG", json.dumps(settings.load("ci")["fleet"]))
     monkeypatch.setenv("POOLS", json.dumps({"devprod-runners-python-medium": labels}))
@@ -255,8 +261,10 @@ def test_runner_scaler_lambda_sets_desired_capacity_from_queued_jobs(monkeypatch
     sys.modules.pop("scaler_handler", None)
     sh = importlib.import_module("scaler_handler")
     monkeypatch.setattr(sh, "working_hours", lambda now: True)
-    records = [{"body": json.dumps({"action": "queued", "workflow_job": {"status": "queued", "labels": labels}})}
-               for _ in range(9)]
+    records = [
+        {"body": json.dumps({"action": "queued", "workflow_job": {"status": "queued", "labels": labels}})}
+        for _ in range(9)
+    ]
     out = sh.handler({"Records": records}, None)["pools"][0]
     assert out["desired"] == 9 and out["launch"] == 9
     g = asg.describe_auto_scaling_groups(AutoScalingGroupNames=["devprod-runners-python-medium"])

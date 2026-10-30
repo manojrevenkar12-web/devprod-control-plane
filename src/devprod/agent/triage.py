@@ -46,7 +46,12 @@ class StandIn:
         self.mk = markers()
 
     def diagnose(self, pr: int, run_id: int, now: float, confirmed: bool | None = None) -> Diagnosis:
-        """`confirmed`: None on the first look; True/False after the confirming rerun failed/passed."""
+        """`confirmed`: None on the first look; True/False after the confirming rerun failed/passed.
+
+        Order: a dead runner explains the run; then failing tests decide if there are any; then an install step
+        (an outage if many pull requests fail there, the change's own manifest if it touched one, the
+        machine if neither), then a job that hung in a test file, and finally an unexplained failure,
+        which is rerun once."""
         jobs = self.t.failed_jobs(run_id)
         calls = 1
         if not jobs:
@@ -54,8 +59,12 @@ class StandIn:
                 "infra", 0.3, evidence=["no failed job recorded"], next_step="rerun_failed_jobs", calls=calls
             )
         logs = "\n".join(j["log_tail"] for j in jobs)
-        if any(m in logs for m in self.mk["infra"]):
-            hit = next(m for m in self.mk["infra"] if m in logs)
+        changes = self.t.pr_changes(pr)
+        reach = set(changes["affected"])
+        calls += 1
+        hit = next((m for m in self.mk["infra"] if m in logs), None)
+        install = any(j["step_failed"] == "install" for j in jobs)
+        if hit and not install:  # a dead runner explains the run, whatever else failed beside it
             return Diagnosis(
                 "infra",
                 0.9,
@@ -63,68 +72,111 @@ class StandIn:
                 next_step="rerun_failed_jobs",
                 calls=calls,
             )
-        if any(m in logs for m in self.mk["dependency"]):
-            hit = next(m for m in self.mk["dependency"] if m in logs)
-            others = self.t.recent_step_failures("install", now - 120, now)
-            calls += 1
-            return Diagnosis(
-                "dependency",
-                0.95 if others >= 3 else 0.7,
-                evidence=[f"install failed: '{hit}'", f"{others} pull requests failed at install in 2 h"],
-                next_step="wait_and_rerun",
-                calls=calls,
-            )
-        changes = self.t.pr_changes(pr)
-        reach = set(changes["affected"])
-        calls += 1
-        tests, suspects, flaky = [], [], []
-        for j in jobs:
-            for test in self.t.failed_tests(j["log_tail"], j["module"]):
-                tests.append(test)
-                h = self.t.test_history(test)
-                calls += 1
-                module = test.split("::")[0]
-                if h["quarantined"] or h["p_flaky"] >= 0.5:
-                    flaky.append((test, f"`{test}` flipped {h['flips']} times in {h['runs']} runs"))
-                elif module in reach:
-                    suspects.append((test, f"`{test}` is in `{module}`, which this change reaches"))
-                else:
-                    flaky.append((test, f"`{test}` is in `{module}`, which this change cannot reach"))
-        if not tests:
+        tests = [
+            (t, j["module"])
+            for j in jobs
+            if j["step_failed"] != "install"
+            for t in self.t.failed_tests(j["log_tail"], j["module"])
+        ]
+        if tests:
+            return self._tests(tests, reach, confirmed, calls)
+        if install:
+            return self._install(pr, logs, now, confirmed, calls + 1, hit)
+        if any(m in logs for m in self.mk["hang"]):
+            module = jobs[0]["module"]
+            where = self.t.in_progress(logs, module) or module
+            if module in reach:
+                return self._suspect(
+                    [f"{module}::{where}"],
+                    [f"the job hung in `{where}`, in `{module}`, which this change reaches"],
+                    confirmed,
+                    calls,
+                )
             return Diagnosis(
                 "infra",
-                0.4,
-                evidence=["the job failed without a failed test or a known marker"],
+                0.6,
+                evidence=[f"the job hung in `{where}`, in `{module}`, which this change cannot reach"],
                 next_step="rerun_failed_jobs",
                 calls=calls,
             )
-        if suspects:
-            if confirmed is None and self.cfg["confirm_regression_by_rerun"]:
-                return Diagnosis(
-                    "regression",
-                    0.6,
-                    [t for t, _ in suspects],
-                    [e for _, e in suspects],
-                    next_step="rerun_to_confirm",
-                    calls=calls,
-                )
-            if confirmed is False:
-                return Diagnosis(
-                    "flaky",
-                    0.8,
-                    [t for t, _ in suspects],
-                    [e for _, e in suspects] + ["passed when rerun on the same commit"],
-                    next_step="propose_quarantine",
-                    calls=calls,
-                )
+        return Diagnosis(
+            "infra",
+            0.4,
+            evidence=["the job failed without a failed test or a known marker"],
+            next_step="rerun_failed_jobs",
+            calls=calls,
+        )
+
+    def _install(
+        self, pr: int, logs: str, now: float, confirmed: bool | None, calls: int, hit: str | None
+    ) -> Diagnosis:
+        others = self.t.recent_step_failures("install", now - 120, now)
+        said = next((m for m in self.mk["dependency"] if m in logs), None)
+        quote = [f"install failed: '{said}'"] if said else []
+        if others >= self.cfg["outage_pull_requests"]:
             return Diagnosis(
-                "regression",
-                0.92,
-                [t for t, _ in suspects],
-                [e for _, e in suspects] + (["failed again on rerun"] if confirmed else []),
-                next_step="tell_author",
+                "dependency",
+                0.95,
+                evidence=[*quote, f"{others} pull requests failed at install in 2 h"],
+                next_step="wait_and_rerun",
                 calls=calls,
             )
+        manifests = self.t.touches_manifest(pr)
+        if manifests and not hit:
+            return self._suspect(
+                [],
+                [
+                    *quote,
+                    f"only {others} pull request(s) failed at install, and this one changes "
+                    + ", ".join(f"`{m}`" for m in manifests),
+                ],
+                confirmed,
+                calls,
+            )
+        why = f"runner failure in the log: '{hit}'" if hit else "install failed for this pull request only"
+        return Diagnosis(
+            "infra",
+            0.7 if hit else 0.55,
+            evidence=[why, f"{others} pull request(s) failed at install in 2 h, and this change touches no manifest"],
+            next_step="rerun_failed_jobs",
+            calls=calls,
+        )
+
+    def _suspect(self, tests: list[str], evidence: list[str], confirmed: bool | None, calls: int) -> Diagnosis:
+        if confirmed is None and self.cfg["confirm_regression_by_rerun"]:
+            return Diagnosis("regression", 0.6, tests, evidence, next_step="rerun_to_confirm", calls=calls)
+        if confirmed is False:
+            return Diagnosis(
+                "flaky",
+                0.8,
+                tests,
+                [*evidence, "passed when rerun on the same commit"],
+                next_step="propose_quarantine",
+                calls=calls,
+            )
+        return Diagnosis(
+            "regression",
+            0.92,
+            tests,
+            [*evidence, *(["failed again on rerun"] if confirmed else [])],
+            next_step="tell_author",
+            calls=calls,
+        )
+
+    def _tests(self, tests: list[tuple[str, str]], reach: set[str], confirmed: bool | None, calls: int) -> Diagnosis:
+        suspects, flaky = [], []
+        for test, _job_module in tests:
+            h = self.t.test_history(test)
+            calls += 1
+            module = test.split("::")[0]
+            if h["quarantined"] or h["p_flaky"] >= 0.5:
+                flaky.append((test, f"`{test}` flipped {h['flips']} times in {h['runs']} runs"))
+            elif module in reach:
+                suspects.append((test, f"`{test}` is in `{module}`, which this change reaches"))
+            else:
+                flaky.append((test, f"`{test}` is in `{module}`, which this change cannot reach"))
+        if suspects:
+            return self._suspect([t for t, _ in suspects], [e for _, e in suspects], confirmed, calls)
         return Diagnosis(
             "flaky", 0.85, [t for t, _ in flaky], [e for _, e in flaky], next_step="rerun_failed_jobs", calls=calls
         )

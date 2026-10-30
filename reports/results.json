@@ -140,21 +140,21 @@
           "failed_push_runs": 223,
           "failed_push_share": 0.187,
           "failed_then_passed_same_commit": 163,
-          "jobs": 10451,
-          "job_minutes": 64748.0,
+          "jobs": 10494,
+          "job_minutes": 65007.0,
           "cache_hit_share": 0.885,
           "failed_jobs_by_step": {
             "install": 16,
             "test": 353
           },
-          "runner_minutes": 691138.0,
+          "runner_minutes": 691502.0,
           "peak_runners": 56,
           "engineers": 42,
           "working_days": 53,
           "prs_per_engineer_day": 0.509,
           "quarantined_tests": 16,
           "triage_comments": 293,
-          "engineer_minutes_on_failures": 1006.0
+          "engineer_minutes_on_failures": 1056.0
         },
         "delivery": {
           "releases": 244,
@@ -187,28 +187,29 @@
             "infra": 82,
             "regression": 60
           },
-          "human_minutes": 1006.0,
+          "human_minutes": 1056.0,
           "human_minutes_by_kind": {
             "infra": 13.0,
-            "dependency": 0,
-            "flaky": 18.0,
+            "dependency": 26.0,
+            "flaky": 42.0,
             "regression": 975.0
           },
           "agent": {
             "judged": 237,
-            "accuracy": 0.983,
-            "regression_precision": 0.938,
+            "accuracy": 0.97,
+            "regression_precision": 0.923,
             "regression_recall": 1.0,
             "confusion": {
               "infra": {
                 "infra": 82
               },
               "dependency": {
-                "dependency": 7
+                "infra": 2,
+                "dependency": 5
               },
               "flaky": {
-                "flaky": 84,
-                "regression": 4
+                "flaky": 83,
+                "regression": 5
               },
               "regression": {
                 "regression": 60
@@ -246,8 +247,8 @@
         "policy": "control-plane",
         "prs": 1134,
         "merged": 1134,
-        "runner_minutes": 691138.0,
-        "agent_usd": 9.28,
+        "runner_minutes": 691502.0,
+        "agent_usd": 10.2,
         "start": "2026-05-04"
       }
     }
@@ -295,21 +296,21 @@
     {
       "name": "triage agent is right",
       "passed": true,
-      "value": 0.983,
+      "value": 0.97,
       "op": ">=",
       "bound": 0.9
     },
     {
       "name": "authors are not sent chasing noise",
       "passed": true,
-      "value": 0.938,
+      "value": 0.923,
       "op": ">=",
       "bound": 0.9
     },
     {
       "name": "half the human time on CI failures",
       "passed": true,
-      "value": 1006.0,
+      "value": 1056.0,
       "op": "<=",
       "bound": 2130.0
     },
@@ -323,7 +324,7 @@
     {
       "name": "cheaper runner fleet",
       "passed": true,
-      "value": 691138.0,
+      "value": 691502.0,
       "op": "<=",
       "bound": 2419200.0
     },
@@ -365,10 +366,10 @@
     {
       "name": "agent spend over the ten weeks (USD)",
       "passed": true,
-      "value": 9.28,
+      "value": 10.2,
       "op": "<=",
       "bound": 25
     }
   ],
-  "heldout": "`ci-failures-1`: not run yet."
+  "heldout": "`ci-failures-1` (heldout), first run: 44 cases written blind; kind right 50%, next step right 61%.\n\n| Expected | Cases | Right |\n|---|---|---|\n| infra | 11 | 10 |\n| dependency | 10 | 1 |\n| flaky | 11 | 5 |\n| regression | 12 | 6 |"
 }

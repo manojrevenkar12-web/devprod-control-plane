@@ -186,3 +186,65 @@ def test_failure_without_tests_or_markers_is_a_low_confidence_rerun(store):
     d = StandIn(tools(store)).diagnose(1, 1, 100)
     assert d.kind == "infra" and d.confidence < 0.5
     assert costs(3) > 0
+
+
+XDIST_LOG = """[gw2] [ 40%] PASSED services/api/tests/test_a.py::test_ok
+[gw3] [ 41%] ERROR services/api/tests/test_b.py::TestAuth::test_refresh[slow]
+=========================== short test summary info ============================
+ERROR services/api/tests/test_b.py::TestAuth::test_refresh[slow] - OSError: [Errno 98] Address already in use"""
+
+VITEST_LOG = """ ✓ src/a.test.tsx (3 tests) 20ms
+ ❯ src/routes/Settings.test.tsx (7 tests | 1 failed) 4120ms
+   × opens the delete dialog 1018ms
+ FAIL  src/routes/Settings.test.tsx > Settings > opens the delete dialog
+ Test Files  1 failed | 22 passed (23)"""
+
+JEST_TIMED_LOG = """FAIL src/pages/Keys.test.tsx (12.404 s)
+  ● Keys page › revokes a key
+
+    thrown: "Exceeded timeout of 5000 ms for a test."
+Tests:       1 failed, 96 passed, 97 total"""
+
+PIP_BUILD_LOG = """  × Getting requirements to build wheel did not run successfully.
+  │ exit code: 1
+ERROR: No matching distribution found for msgspec"""
+
+COLLECT_LOG = """E   ImportError: cannot import name 'X' from 'api.trace'
+=========================== short test summary info ============================
+ERROR services/api/tests/test_trace.py
+!!!!!!!!!!!!!!!!!!!! Interrupted: 1 error during collection !!!!!!!!!!!!!!!!!!!!"""
+
+
+def test_parses_xdist_errors_vitest_jest_and_collection_errors(store):
+    t = tools(store)
+    assert t.failed_tests(XDIST_LOG, "api") == ["api::test_refresh"]
+    assert t.failed_tests(VITEST_LOG, "web") == ["web::opens_the_delete_dialog"]
+    assert t.failed_tests(JEST_TIMED_LOG, "web") == ["web::revokes_a_key"]
+    assert t.failed_tests(PIP_BUILD_LOG, "api") == []  # pip's `×` is not a test
+    assert t.failed_tests(COLLECT_LOG, "api") == ["api::test_trace"]
+
+
+def test_install_failure_of_one_pr_that_changes_a_manifest_is_its_own(store):
+    add_pr(store, 1, ["api"], files=["services/api/pyproject.toml"])
+    add_failed_run(store, 1, 1, "api", "ERROR: No matching distribution found for httpx==9.9", step="install")
+    agent = StandIn(tools(store))
+    assert agent.diagnose(1, 1, 100).next_step == "rerun_to_confirm"
+    assert agent.diagnose(1, 1, 100, confirmed=True).kind == "regression"
+
+
+def test_lone_install_failure_without_a_manifest_change_is_the_machine(store):
+    add_pr(store, 1, ["api"])
+    add_failed_run(store, 1, 1, "api", "fatal: early EOF\nfatal: fetch-pack: invalid index-pack output", step="install")
+    d = StandIn(tools(store)).diagnose(1, 1, 100)
+    assert (d.kind, d.next_step) == ("infra", "rerun_failed_jobs")
+
+
+def test_job_that_hangs_in_reached_code_is_a_suspect(store):
+    hang = " ❯ src/client/retry.test.ts 3/11\n##[error]The job has exceeded the maximum execution time of 25 minutes."
+    add_pr(store, 1, ["ui-kit"])
+    add_failed_run(store, 1, 1, "web", hang)
+    d = StandIn(tools(store)).diagnose(1, 1, 100)
+    assert d.kind == "regression" and "retry.test.ts" in d.evidence[0]
+    add_pr(store, 2, ["billing"])
+    add_failed_run(store, 2, 2, "web", hang)
+    assert StandIn(tools(store)).diagnose(2, 2, 100).kind == "infra"

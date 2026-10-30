@@ -257,9 +257,10 @@ def heldout(name: str, world: str = WORLD) -> None:
     from . import heldout as h
 
     out = h.run(name, _store(world).modules())
-    typer.echo(f"{name} ({out['status']}): {out['cases']} cases, kind right {out['kind_accuracy']:.0%}, "
-               f"next step right {out['next_step_accuracy']:.0%}" + (" — first run recorded" if out.get("first_run")
-                                                                     else ""))
+    typer.echo(
+        f"{name} ({out['status']}): {out['cases']} cases, kind right {out['kind_accuracy']:.0%}, "
+        f"next step right {out['next_step_accuracy']:.0%}" + (" — first run recorded" if out.get("first_run") else "")
+    )
     for r in out["results"]:
         if not r["kind_ok"]:
             typer.echo(f"  {r['id']}: expected {r['expected']}, got {r['got']} ({r['why']})")

@@ -7,9 +7,13 @@ provider: simulated               # simulated | claude (Claude Agent SDK; DEVPRO
 may_do_alone: [rerun_failed_jobs, comment, propose_quarantine]
 needs_a_person: [quarantine_on_main, open_fix_pr, revert]
 confirm_regression_by_rerun: true # a suspected regression is rerun once; only a repeat failure is called a regression
+outage_pull_requests: 3           # this many pull requests failing at install in two hours is an outage, not a change
 markers:
   infra: ["No space left on device", "Killed", "OOMKilled", "runner has received a shutdown signal",
           "lost communication with the server", "Could not resolve host: api.github.com"]
   dependency: ["Could not find a version that satisfies", "No matching distribution found",
                "npm ERR! code ETARGET", "npm ERR! 404", "Hash mismatch", "ERR_PNPM_FETCH_404"]
+  hang: ["has exceeded the maximum execution time", "Timeout (>", "Exceeded timeout of"]
+  manifests: [pyproject.toml, uv.lock, requirements.txt, requirements-dev.txt, poetry.lock, setup.py, setup.cfg,
+              package.json, package-lock.json, pnpm-lock.yaml, yarn.lock, pnpm-workspace.yaml, .npmrc, .python-version]
 prices_usd_per_mtok: {claude-sonnet-5-5: [2.0, 10.0], claude-haiku-5-5: [0.10, 0.50]}

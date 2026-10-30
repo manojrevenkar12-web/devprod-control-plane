@@ -14,9 +14,23 @@ from ..ci.graph import Graph
 from ..flaky.detector import FlakeRegister
 from ..store import Store
 
-PYTEST_FAILED = re.compile(r"^FAILED (\S+?)::(\S+?)(?: - (.*))?$", re.MULTILINE)
-JEST_FILE = re.compile(r"^FAIL (\S+)$", re.MULTILINE)
-JEST_TEST = re.compile(r"^\s+[✕×] (.+?)(?: \(\d+ ?ms\))?$", re.MULTILINE)
+# pytest: the short summary (`FAILED path::test - why`, `ERROR path::test` for setup errors) and
+# pytest-xdist progress lines (`[gw3] [ 61%] FAILED path::test`); class-based ids keep the last part.
+PYTEST = re.compile(r"(?:^|\]\s)(?:FAILED|ERROR)\s+(\S+?\.py)::(\S+)", re.MULTILINE)
+# a test module that failed to import: `ERROR path/test_x.py` with no test after it
+PYTEST_COLLECT = re.compile(r"^ERROR\s+(\S+?/(test_\w+|\w+_test)\.py)\s*(?:-.*)?$", re.MULTILINE)
+JS_RUN = re.compile(r"^\s*(?:Test Files|Tests:|Test Suites:)", re.MULTILINE)
+# Jest: `FAIL path (12.4 s)` then `● Suite › case`; Vitest: `FAIL  path > Suite > case` and `× case 41ms`.
+JS_FILE = re.compile(r"^\s*FAIL\s+(\S+\.(?:test|spec)\.[cm]?[jt]sx?)", re.MULTILINE)
+JEST_CASE = re.compile(r"^\s*● (.+?)\s*$", re.MULTILINE)
+VITEST_CASE = re.compile(r"^\s*FAIL\s+\S+\.(?:test|spec)\.[cm]?[jt]sx?\s+>\s+(.+?)\s*$", re.MULTILINE)
+CROSS_CASE = re.compile(r"^\s+[✕×] (.+?)(?:\s+\(?\d+(?:\.\d+)? ?m?s\)?)?\s*$", re.MULTILINE)
+IN_PROGRESS = re.compile(r"(?:❯|RUNS)\s+(\S+\.(?:test|spec)\.[cm]?[jt]sx?|\S+\.py)", re.MULTILINE)
+
+
+def _js_name(case: str) -> str:
+    leaf = re.split(r"\s+[›>]\s+", case.strip())[-1]
+    return re.sub(r"\s+", "_", leaf.strip())
 
 
 @dataclass
@@ -39,15 +53,30 @@ class Tools:
         ]
 
     def failed_tests(self, log: str, module: str) -> list[str]:
-        out = []
-        for path, name, _ in PYTEST_FAILED.findall(log):
+        """Failing test ids in a log, `<module>::<name>`, in order and without repeats."""
+        out: list[str] = []
+        for path, name in PYTEST.findall(log):
             m = self.graph.module_of(path) or module
-            out.append(f"{m}::{name.split('[')[0]}")
-        files = JEST_FILE.findall(log)
-        if files:
-            m = self.graph.module_of(files[0]) or module
-            out += [f"{m}::{t.strip().replace(' ', '_')}" for t in JEST_TEST.findall(log)]
-        return out
+            out.append(f"{m}::{name.split('::')[-1].split('[')[0]}")
+        for path, stem in PYTEST_COLLECT.findall(log):
+            out.append(f"{self.graph.module_of(path) or module}::{stem}")
+        files = JS_FILE.findall(log)
+        if files or JS_RUN.search(log):  # only inside a Jest or Vitest run (pip also prints `×`)
+            m = (self.graph.module_of(files[0]) if files else None) or module
+            cases = [c for c in JEST_CASE.findall(log) if not c.startswith("Test suite failed to run")]
+            cases += VITEST_CASE.findall(log) + CROSS_CASE.findall(log)
+            out += [f"{m}::{_js_name(c)}" for c in cases]
+        return list(dict.fromkeys(out))
+
+    def in_progress(self, log: str, module: str) -> str | None:
+        """The test file a job was still running when it was cut off (a hang or a runner death)."""
+        hits = IN_PROGRESS.findall(log)
+        return hits[-1] if hits else None
+
+    def touches_manifest(self, pr: int) -> list[str]:
+        """Dependency manifests and lock files the pull request changes."""
+        names = markers()["manifests"]
+        return [f for f in self.pr_changes(pr)["files"] if f.rsplit("/", 1)[-1] in names]
 
     def test_history(self, test_id: str) -> dict[str, Any]:
         return {**self.flakes.history(test_id), "quarantined": test_id in self.store.quarantined()}
