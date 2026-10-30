@@ -66,8 +66,7 @@ A second set was written blind afterwards to measure the generalised agent:
 
 On `ci-failures-2` the agent was right on every infra and dependency case. It never told an author
 that a flake was their fault. Its three misses were failures it could not read, so it fell back to
-"rerun": one unittest-style traceback, one Vitest log, and one component test in a module the change
-cannot reach. Those logs have not been studied: doing so would turn the set into a regression set
+"rerun": a unittest-style traceback and two JavaScript test logs it did not parse. Those logs have not been studied: doing so would turn the set into a regression set
 and need a third blind set.
 
 ## How it works
