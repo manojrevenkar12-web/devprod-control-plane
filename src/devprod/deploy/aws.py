@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -62,7 +63,7 @@ class StackExecutor:
 
     accounts: Accounts
     stack_name: str
-    template: str
+    template: str | Callable[[int], str]  # the template, or where to read a release's template
     epoch: datetime
     account_ids: dict[str, str]  # our account name -> AWS account id
     parameters: dict[str, str] = field(default_factory=dict)
@@ -77,6 +78,7 @@ class StackExecutor:
         params = [
             {"ParameterKey": k, "ParameterValue": v} for k, v in {**self.parameters, "Release": str(release)}.items()
         ]
+        body = self.template(release) if callable(self.template) else self.template
         try:
             cf.describe_stacks(StackName=self.stack_name)
             exists = True
@@ -86,7 +88,7 @@ class StackExecutor:
             if exists:
                 cf.update_stack(
                     StackName=self.stack_name,
-                    TemplateBody=self.template,
+                    TemplateBody=body,
                     Parameters=params,
                     Capabilities=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
                 )
@@ -94,7 +96,7 @@ class StackExecutor:
             else:
                 cf.create_stack(
                     StackName=self.stack_name,
-                    TemplateBody=self.template,
+                    TemplateBody=body,
                     Parameters=params,
                     Capabilities=["CAPABILITY_IAM", "CAPABILITY_AUTO_EXPAND"],
                 )

@@ -198,12 +198,38 @@ class Rollout:
         return [a for w in self.waves for a in w["account_ids"] if a not in self.deployed]
 
     def snapshot(self) -> dict[str, Any]:
+        """Everything needed to resume: store it between steps (DynamoDB, Step Functions state)."""
         return {
             "release": self.release,
+            "waves": self.waves,
+            "gate_cfg": self.gate_cfg,
+            "respect_windows": self.respect_windows,
             "state": self.state,
             "wave": self.wave,
             "deployed": self.deployed,
             "started": self.started,
             "wave_of": self.wave_of,
+            "wave_started": self.wave_started,
             "events": self.events,
         }
+
+    @classmethod
+    def from_snapshot(cls, s: dict[str, Any]) -> Rollout:
+        return cls(
+            **{
+                k: s[k]
+                for k in (
+                    "release",
+                    "waves",
+                    "gate_cfg",
+                    "respect_windows",
+                    "state",
+                    "wave",
+                    "deployed",
+                    "started",
+                    "wave_of",
+                    "wave_started",
+                    "events",
+                )
+            }
+        )

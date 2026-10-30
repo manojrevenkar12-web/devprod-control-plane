@@ -158,8 +158,9 @@ def gate_workflow() -> dict[str, Any]:
                     {"uses": ACTIONS["setup-uv"]},
                     {
                         "name": "Wait for the module workflows this change needs",
-                        "run": "uvx --from ./tools/devprod devprod gate-pr --base ${{ github.event.pull_request.base.sha "
-                        "|| github.event.merge_group.base_sha }} --head ${{ github.sha }}",
+                        "run": "uvx --from ./tools/devprod devprod gate-pr "
+                        "--base ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }} "
+                        "--head ${{ github.sha }}",
                         "env": {"GITHUB_TOKEN": "${{ secrets.GITHUB_TOKEN }}"},
                     },
                 ],

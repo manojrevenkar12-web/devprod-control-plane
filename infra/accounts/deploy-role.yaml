@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: >
+  The role the control plane assumes in a customer account (deployed to every account by a
+  service-managed StackSet). It can update the product's stacks and their Lambda traffic shifts,
+  read the decision metrics, and nothing else.
+
+Parameters:
+  ControlPlaneAccountId:
+    Type: String
+    AllowedPattern: "^[0-9]{12}$"
+  ExternalId:
+    Type: String
+    NoEcho: true
+    MinLength: 16
+  StackPrefix:
+    Type: String
+    Default: decisions-
+
+Resources:
+  DeployRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: devprod-deployer
+      MaxSessionDuration: 3600
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub arn:${AWS::Partition}:iam::${ControlPlaneAccountId}:root
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref ExternalId
+      Policies:
+        - PolicyName: deploy-product-stacks
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Sid: Stacks
+                Effect: Allow
+                Action:
+                  - cloudformation:CreateStack
+                  - cloudformation:UpdateStack
+                  - cloudformation:DescribeStacks
+                  - cloudformation:DescribeStackEvents
+                  - cloudformation:CreateChangeSet
+                  - cloudformation:ExecuteChangeSet
+                  - cloudformation:DescribeChangeSet
+                Resource: !Sub arn:${AWS::Partition}:cloudformation:*:${AWS::AccountId}:stack/${StackPrefix}*/*
+              - Sid: PassOnlyTheExecutionRole
+                Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt ExecutionRole.Arn
+              - Sid: TrafficShift
+                Effect: Allow
+                Action:
+                  - codedeploy:CreateDeployment
+                  - codedeploy:GetDeployment
+                  - codedeploy:StopDeployment
+                  - codedeploy:GetDeploymentConfig
+                  - lambda:GetAlias
+                Resource: "*"
+              - Sid: GateMetrics
+                Effect: Allow
+                Action: cloudwatch:GetMetricStatistics
+                Resource: "*"
+
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: devprod-cfn-execution
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudformation.amazonaws.com
+            Action: sts:AssumeRole
+      # CloudFormation acts with this role, not the deployer's. PowerUserAccess is the starting point;
+      # narrow it to the product's resource types once the stack is stable.
+      ManagedPolicyArns:
+        - !Sub arn:${AWS::Partition}:iam::aws:policy/PowerUserAccess
+
+Outputs:
+  DeployRoleArn:
+    Value: !GetAtt DeployRole.Arn

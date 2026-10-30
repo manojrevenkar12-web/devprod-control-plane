@@ -1,0 +1,158 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  devprod control plane: the GitHub webhook (Function URL, signature checked in code), delivery
+  de-duplication, the triage and runner queues, and the rollout worker that advances progressive
+  deliveries every minute from DynamoDB snapshots.
+
+Parameters:
+  RunnerQueueUrl:
+    Type: String
+    Description: jobs_queue_url output of infra/runners
+  RunnerQueueArn:
+    Type: String
+  DeployRoleName:
+    Type: String
+    Default: devprod-deployer
+  DeployExternalId:
+    Type: String
+    NoEcho: true
+  ReleasesBucket:
+    Type: String
+    Description: Where the release train writes releases/<n>/template.yaml
+
+Globals:
+  Function:
+    Runtime: python3.13
+    Architectures: [arm64]
+    MemorySize: 512
+    Timeout: 10
+    Tracing: Active
+    CodeUri: ../../src/
+
+Resources:
+  WebhookSecret:
+    Type: AWS::SecretsManager::Secret
+    Properties:
+      Description: GitHub webhook secret (set the same value on the GitHub App)
+      GenerateSecretString:
+        PasswordLength: 48
+        ExcludePunctuation: true
+
+  Deliveries:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      TimeToLiveSpecification:
+        AttributeName: expires
+        Enabled: true
+
+  Rollouts:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      AttributeDefinitions:
+        - AttributeName: release
+          AttributeType: N
+      KeySchema:
+        - AttributeName: release
+          KeyType: HASH
+
+  TriageDLQ:
+    Type: AWS::SQS::Queue
+    Properties:
+      MessageRetentionPeriod: 1209600
+
+  TriageQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      VisibilityTimeout: 900
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt TriageDLQ.Arn
+        maxReceiveCount: 3
+
+  WebhookFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: devprod.service.lambda_webhook.handler
+      AutoPublishAlias: live
+      DeploymentPreference:
+        Type: Canary10Percent5Minutes
+        Alarms:
+          - !Ref WebhookErrors
+      FunctionUrlConfig:
+        AuthType: NONE   # GitHub cannot sign SigV4; every request is HMAC-verified before parsing
+      Environment:
+        Variables:
+          WEBHOOK_SECRET_ARN: !Ref WebhookSecret
+          DELIVERIES_TABLE: !Ref Deliveries
+          RUNNER_QUEUE_URL: !Ref RunnerQueueUrl
+          TRIAGE_QUEUE_URL: !Ref TriageQueue
+      Policies:
+        - AWSSecretsManagerGetSecretValuePolicy:
+            SecretArn: !Ref WebhookSecret
+        - Statement:
+            - Effect: Allow
+              Action: [dynamodb:PutItem, dynamodb:DeleteItem]
+              Resource: !GetAtt Deliveries.Arn
+            - Effect: Allow
+              Action: sqs:SendMessage
+              Resource: [!GetAtt TriageQueue.Arn, !Ref RunnerQueueArn]
+
+  WebhookErrors:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: Errors on a new webhook version roll it back
+      Namespace: AWS/Lambda
+      MetricName: Errors
+      Dimensions:
+        - Name: FunctionName
+          Value: !Ref WebhookFunction
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 2
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+
+  RolloutWorker:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: devprod.deploy.lambda_worker.handler
+      Timeout: 300
+      ReservedConcurrentExecutions: 1
+      Environment:
+        Variables:
+          ROLLOUTS_TABLE: !Ref Rollouts
+          DEPLOY_ROLE_NAME: !Ref DeployRoleName
+          DEPLOY_EXTERNAL_ID: !Ref DeployExternalId
+          RELEASES_BUCKET: !Ref ReleasesBucket
+      Events:
+        Tick:
+          Type: ScheduleV2
+          Properties:
+            ScheduleExpression: rate(1 minute)
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref Rollouts
+        - S3ReadPolicy:
+            BucketName: !Ref ReleasesBucket
+        - Statement:
+            - Effect: Allow
+              Action: sts:AssumeRole
+              Resource: !Sub arn:${AWS::Partition}:iam::*:role/${DeployRoleName}
+
+Outputs:
+  WebhookUrl:
+    Description: Set as the GitHub App's webhook URL
+    Value: !GetAtt WebhookFunctionUrl.FunctionUrl
+  TriageQueueUrl:
+    Value: !Ref TriageQueue

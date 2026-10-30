@@ -1,0 +1,30 @@
+#!/bin/bash
+# One job, then terminate. Registers a just-in-time runner (no long-lived registration token on disk).
+set -euo pipefail
+dnf install -y -q git jq docker libicu
+systemctl enable --now docker
+useradd -m runner && usermod -aG docker runner
+cd /home/runner
+RUNNER_VERSION=$(curl -fsSL https://api.github.com/repos/actions/runner/releases/latest | jq -r .tag_name | tr -d v)
+curl -fsSL -o runner.tgz "https://github.com/actions/runner/releases/download/v$${RUNNER_VERSION}/actions-runner-linux-arm64-$${RUNNER_VERSION}.tar.gz"
+tar xzf runner.tgz && chown -R runner:runner /home/runner
+TOKEN=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 300")
+INSTANCE=$(curl -fsS -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
+# a short-lived installation token from the GitHub App, then a JIT config bound to this instance's name
+python3 -m pip install -q pyjwt cryptography boto3
+aws s3 cp --region "${region}" "s3://${cache}/bootstrap/jit.py" /usr/local/bin/devprod-jit.py
+JIT=$(python3 /usr/local/bin/devprod-jit.py --secret "${secret_arn}" --org "${org}" --name "$INSTANCE" --labels "${labels}" --region "${region}")
+# while a job runs the instance is protected from scale-in, so the scaler only ever stops idle runners
+cat > /home/runner/job-started.sh <<HOOK
+#!/bin/bash
+aws autoscaling set-instance-protection --region "${region}" --auto-scaling-group-name "${asg}" --instance-ids "$INSTANCE" --protected-from-scale-in
+HOOK
+chmod +x /home/runner/job-started.sh
+cat > /home/runner/.env <<ENV
+ACTIONS_CACHE_S3_BUCKET=${cache}
+ACTIONS_RUNNER_HOOK_JOB_STARTED=/home/runner/job-started.sh
+ENV
+chown runner:runner /home/runner/.env /home/runner/job-started.sh
+sudo -u runner ./run.sh --jitconfig "$JIT" || true
+# ephemeral: one job, then the group replaces this instance
+aws autoscaling terminate-instance-in-auto-scaling-group --region "${region}" --instance-id "$INSTANCE" --should-decrement-desired-capacity
