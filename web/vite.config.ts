@@ -1,6 +1,6 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
-import { CSP } from "./csp";
+import { CSP } from "./csp.ts";
 
 export default defineConfig({
   base: "./",
