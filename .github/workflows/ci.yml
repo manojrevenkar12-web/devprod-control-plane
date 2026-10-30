@@ -50,7 +50,7 @@ jobs:
     defaults: {run: {working-directory: infra/runners}}
     steps:
       - uses: actions/checkout@v5
-      - uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v4
       - run: ../../scripts/ci-run.sh "terraform fmt" terraform fmt -check -diff
       - run: ../../scripts/ci-run.sh "terraform init" terraform init -backend=false -input=false
       - run: ../../scripts/ci-run.sh "terraform validate" terraform validate
